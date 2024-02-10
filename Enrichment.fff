@@ -1,0 +1,14 @@
+\begin{figure*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+\centering
+\includegraphics{Enrichment_files/figure-latex/Figure1-1.pdf}
+\caption{\label{fig:Figure1}The process of translating experiences into behaviour via reprepresentation. Arrows represent processes that translate one domain into another. Thus learning translates experience into a representation and additional cognitive processes, such as associative recall, or similarity evaluations translate representations into behaviour.}
+\end{figure*}
+\begin{figure*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+\centering
+\includegraphics{Enrichment_files/figure-latex/entropySim-1.pdf}
+\caption{\label{fig:entropySim}The rising entropy and falling similarity of the aging lexicon as a function of learning.}
+\end{figure*}
