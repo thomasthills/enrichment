@@ -1,3 +1,3 @@
 # enrichment
 
-This is the code for the enrichment language project
+This is the code for the enrichment language project.
