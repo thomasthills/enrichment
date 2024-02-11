@@ -1,5 +1,5 @@
 ---
-title             : "An enrichment account of cognitive aging v2"
+title             : "An enrichment account of cognitive aging"
 shorttitle        : "Enrichment and cognitive aging"
 
 author: 
@@ -26,7 +26,7 @@ abstract: |
   
 keywords          : "cognitive aging, Rescorla Wagner, spreading activation, network science, "
 
-bibliography      : /Users/thomashills/Dropbox/Life_3.0_db/Books/BNS_Hills/BNS_Bookdown/testbook/merge.bib 
+bibliography      : enrichment.bib 
 
 floatsintext      : no
 linenumbers       : yes
@@ -39,6 +39,7 @@ footnotelist      : no
 
 classoption       : "man"
 output            : papaja::apa6_pdf
+always_allow_html: true
 ---
 
 ```{r setup, include = FALSE}
@@ -165,7 +166,7 @@ We will measure this similarity for all node pairs in the representation.
 
 
 
-```{r sim1, cache=TRUE}
+```{r sim1, cache=TRUE, eval = FALSE}
 
 #### Clean and Prepare Workspace #####
 
@@ -327,7 +328,7 @@ for(lage in 1:ageEpochs){
 
 
 
-```{r entropySim, fig.cap="The rising entropy and falling similarity of the aging lexicon as a function of learning. ", cache=TRUE, fig.height=3.4}
+```{r entropySim, fig.cap="The rising entropy and falling similarity of the aging lexicon as a function of learning. ", cache=TRUE, fig.height=3.4, eval = FALSE}
 
 #### Set Plot Parameters ####
 par(mfrow=c(1,2))
