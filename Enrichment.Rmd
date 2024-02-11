@@ -1,5 +1,5 @@
 ---
-title             : "An enrichment account of cognitive aging"
+title             : "An enrichment account of cognitive aging."
 shorttitle        : "Enrichment and cognitive aging"
 
 author: 
