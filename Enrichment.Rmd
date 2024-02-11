@@ -382,7 +382,9 @@ plot(agex, sed$similarity[1:ageEpochs], xlab = "Age", ylab = "Similarity", type=
 
 # Discussion
 
-Because edges were formed in @dubossarsky2017quantifying and @wulff2019new by requiring a minimun number of cue-target associations in the free association task, rising entropy corresponds to a less predictable pattern of cue-target associations and the lower likelihood of an edge between any cue-target pair. As a consequence, representational networks with higher entropy will produce behaviour networks that are more sparse.
+Because edges were formed in @dubossarsky2017quantifying and @wulff2019new by requiring a minimun number of cue-target associations in the free association task, rising entropy corresponds to a less predictable pattern of cue-target associations and the lower likelihood of an edge between any cue-target pair. As a consequence, representational networks with higher entropy will produce behavioural networks that are more sparse.
+
+Write some more stuff.
 
 \newpage
 
