@@ -73,30 +73,29 @@ library(network)
 library(sna)
 ```
 
-Cognitive aging across the adult lifespan is characterized by two distinct and well-document patterns: as individuals age, many measures of working memory, processing speed, and long-term memory show apparent performance decrements from approximately the age of 20, while at the same time, measures of vocabulary and other kinds of general knowledge increase [@Salthouse:2004is;@park2009adaptive]. This distinction between the ability to solve novel problems in a fast and accurate way, called _fluid intelligence_, and the quantity of one's prior knowledge, called _crystallized knowledge_, is a classic division of intelligence [@cattell1987intelligence]. Several recent accounts of cognitive aging have argued for a relationship between these two phenomenon [e.g., @ramscar2014myth;@amer2022cluttered;@buchler2007modeling]. This raises the challenge: can we provide a formal explanation for how a rise in crystallized intelligence facilitates a decline in fluid intelligence? 
+Cognitive aging across the adult lifespan is characterized by two distinct and well-document patterns: as individuals age, many measures of working memory, processing speed, and long-term memory show apparent performance decrements from approximately the age of 20, while at the same time, measures of vocabulary and other kinds of general knowledge increase [@Salthouse:2004is; @park2009adaptive]. This distinction between the ability to solve novel problems in a fast and accurate way, called *fluid intelligence*, and the quantity of one's prior knowledge, called *crystallized knowledge*, is a classic division of intelligence [@cattell1987intelligence]. Several recent accounts of cognitive aging have argued for a relationship between these two phenomenon [e.g., @ramscar2014myth; @amer2022cluttered; @buchler2007modeling]. This raises the challenge: can we provide a formal explanation for how a rise in crystallized intelligence facilitates a decline in fluid intelligence?
 
-It is useful to juxtapose this interactionist account against an often proposed alternative that treats these two phenomenon independently.  For example, the _common cause theory of age-related cognitive decline_ argues that biological aging in the brain is the source of processing speed deficits [@deary2009age]. The supposition is that aging is a general process of degradation, in which factors like oxidative stress and telomere shortening damage the physiological mechanisms underpinning cognitive performance. @salthouse2013mechanisms offers detailed biological explanations for how this might work: "a slower speed of transmission along single (e.g., loss of myelination) or multiple (e.g., loss of functional cells dictating circuitous linkages) pathways, or. . . delayed propagation at the connections between neural units (e.g., impairment in functioning of neurotransmitters, reduced synchronization of activation patterns)" (p. 116). While this account fits with our intuition for biological aging, it is useful to ask if this account is necessary. Would cognitive enrichment cause cognitive slowing on its own?
+It is useful to juxtapose this interactionist account against an often proposed alternative that treats these two phenomenon independently. For example, the *common cause theory of age-related cognitive decline* argues that biological aging in the brain is the source of processing speed deficits [@deary2009age]. The supposition is that aging is a general process of degradation, in which factors like oxidative stress and telomere shortening damage the physiological mechanisms underpinning cognitive performance. @salthouse2013mechanisms offers detailed biological explanations for how this might work: "a slower speed of transmission along single (e.g., loss of myelination) or multiple (e.g., loss of functional cells dictating circuitous linkages) pathways, or. . . delayed propagation at the connections between neural units (e.g., impairment in functioning of neurotransmitters, reduced synchronization of activation patterns)" (p. 116). While this account fits with our intuition for biological aging, it is useful to ask if this account is necessary. Would cognitive enrichment cause cognitive slowing on its own?
 
-How enrichment could lead to slowing has seen several formal treatments. @buchler2007modeling modeled age-related changes in word recognition after a contextual fan effect, in which life-experience increases concept relations and leads to more diffuse activation. Their model manipulated base-level activation and number of contextual relations (fan) and demonstrated that these changes could reproduce age-related changes in word recognition. @ramscar2014myth took a different approach to explain age-related declines in paired-associate learning. Based on @desrosiers1986paired observation that older adults perform more poorly on paired-associate learning than younger adults, @ramscar2014myth suggested that "older adults’ changing performance reflects memory search demands, which escalate as experience grows" (p. 5) because older adults largely show impaired paired-associated learning only for unrelated terms.  In subsequent work, @ramscar2017mismeasurement showed that the difficulty of learning unrelated word pairs is entirely predictable from the frequency of co-occurrence of those words. Training a Rescorla-Wagner model on typical patterns of word co-occurrences, unrelated word pairs become negatively associated over time.  As @ramscar2017mismeasurement state, "the discriminative processes that produce 'associative' learning teaches English speakers not only which words go together, but also which words do not go together. This process both increasingly differentiates meaningful and meaningless word pairs and makes meaningless pairs harder to learn" (p. 3). Still more recent work has argued for a much broader influence of age-related mental 'clutter', which may arise from representational changes across the lifespan as well as changes in executive function [@amer2022cluttered]. 
+How enrichment could lead to slowing has seen several formal treatments. @buchler2007modeling modeled age-related changes in word recognition after a contextual fan effect, in which life-experience increases concept relations and leads to more diffuse activation. Their model manipulated base-level activation and number of contextual relations (fan) and demonstrated that these changes could reproduce age-related changes in word recognition. @ramscar2014myth took a different approach to explain age-related declines in paired-associate learning. Based on @desrosiers1986paired observation that older adults perform more poorly on paired-associate learning than younger adults, @ramscar2014myth suggested that "older adults' changing performance reflects memory search demands, which escalate as experience grows" (p. 5) because older adults largely show impaired paired-associated learning only for unrelated terms. In subsequent work, @ramscar2017mismeasurement showed that the difficulty of learning unrelated word pairs is entirely predictable from the frequency of co-occurrence of those words. Training a Rescorla-Wagner model on typical patterns of word co-occurrences, unrelated word pairs become negatively associated over time. As @ramscar2017mismeasurement state, "the discriminative processes that produce 'associative' learning teaches English speakers not only which words go together, but also which words do not go together. This process both increasingly differentiates meaningful and meaningless word pairs and makes meaningless pairs harder to learn" (p. 3). Still more recent work has argued for a much broader influence of age-related mental 'clutter', which may arise from representational changes across the lifespan as well as changes in executive function [@amer2022cluttered].
 
-Recent research adds additional nuance to these findings based on free associations, memory search, and similarity judgments. First, several efforts to chart the mental lexicon across the lifespan using free associates have revealed reproducible patterns. @dubossarsky2017quantifying asked over 8000 people, ranging in age from roughly 10 to 70, to provide three free associates to each of 420 words. With approximately 1000 people in each age group, data was aggregated within age-groups to produce networks among the 420 words with edges representing a weighted function of common associates.   Across the adult lifespan, older networks had lower degree (number of associations), higher average shortest path length, and higher entropy for associations (less predictable associations).  @zortea2014graph found a similar pattern with a smaller group of participants.  With a still smaller group of participants (n=8) but far more cues (n=3000), @wulff2022using found this pattern yet again. 
+Recent research adds additional nuance to these findings based on free associations, memory search, and similarity judgments. First, several efforts to chart the mental lexicon across the lifespan using free associates have revealed reproducible patterns. @dubossarsky2017quantifying asked over 8000 people, ranging in age from roughly 10 to 70, to provide three free associates to each of 420 words. With approximately 1000 people in each age group, data was aggregated within age-groups to produce networks among the 420 words with edges representing a weighted function of common associates. Across the adult lifespan, older networks had lower degree (number of associations), higher average shortest path length, and higher entropy for associations (less predictable associations). @zortea2014graph found a similar pattern with a smaller group of participants. With a still smaller group of participants (n=8) but far more cues (n=3000), @wulff2022using found this pattern yet again.
 
-Analyses of memory search in older and younger adults also find consistent patterns of change in the aging mental lexicons. Using semantic fluency data--e.g., "name all the animals you can think of"-- @wulff2022using found that the mental lexicons of older adults appeared less well-connected. This used edges based on nearby co-occurrence in the string of productions, producng networks with lower average degree and higher average shortest path lengths. @hills2013mechanisms modeled the fluency task using semantic space models and found that older adults produced less similar words when searching memory than younger adults. Finally, @cosgrove2021quantifying used percolation analysis to investigate the resilience of older adults' mental lexicons, finding that older lexicons were less resilient to decay than younger networks. 
+Analyses of memory search in older and younger adults also find consistent patterns of change in the aging mental lexicons. Using semantic fluency data--e.g., "name all the animals you can think of"-- @wulff2022using found that the mental lexicons of older adults appeared less well-connected. This used edges based on nearby co-occurrence in the string of productions, producng networks with lower average degree and higher average shortest path lengths. @hills2013mechanisms modeled the fluency task using semantic space models and found that older adults produced less similar words when searching memory than younger adults. Finally, @cosgrove2021quantifying used percolation analysis to investigate the resilience of older adults' mental lexicons, finding that older lexicons were less resilient to decay than younger networks.
 
 Finally, older adults also judge animals to be less similar to one another than younger adults. @wulff2019new also asked younger and older adults to judge the similarity of 77 different animals. Rating the similarity of pairs of animals on a scale from 1 to 20, @wulff2019new found that older adults tended to rate animals as less similar than young adults.
 
-In sum, older adults produce less predictable associations (higher entropy) and lower similarity judgments than younger adults. These results are intuitively consistent with a common cause account of age-related decline, and possibly of representational degradation. However, might these results be a natural consequence of enrichment based on life-experience?  extending standard learning and retrieval models across the lifespan, we can predict all of these effects as a consequence of enrichment, without the need for assuming any additional processes associated with biological aging or degradation.
+In sum, older adults produce less predictable associations (higher entropy) and lower similarity judgments than younger adults. These results are intuitively consistent with a common cause account of age-related decline, and possibly of representational degradation. However, might these results be a natural consequence of enrichment based on life-experience? extending standard learning and retrieval models across the lifespan, we can predict all of these effects as a consequence of enrichment, without the need for assuming any additional processes associated with biological aging or degradation.
 
-# The enrichment model 
+# The enrichment model
 
-The enrichment account envisions behavior as the outcome of three stages: 
+The enrichment account envisions behavior as the outcome of three stages:
 
-1. _Environment_: The environment presents the set of possible experiences, i.e., associations. 
-2. _Representation_: Learning from the environment generates a cognitive representation. This continues to develop across the lifespan.
-3. _Behavior_: Behavior is recovery of information from the cognitive representation appropriate to the environmental context. This generates free-associations, memory search, similarity judgments, and so on.
+1.  *Environment*: The environment presents the set of possible experiences, i.e., associations.
+2.  *Representation*: Learning from the environment generates a cognitive representation. This continues to develop across the lifespan.
+3.  *Behavior*: Behavior is recovery of information from the cognitive representation appropriate to the environmental context. This generates free-associations, memory search, similarity judgments, and so on.
 
 These stages are presented in Figure \@ref(fig:ERR) and each is explained in detail below.
-
 
 ```{r Figure1, fig.cap="The process of translating experiences into behaviour via reprepresentation. Arrows represent processes that translate one domain into another.  Thus learning translates experience into a representation and additional cognitive processes, such as associative recall, or similarity evaluations translate representations into behaviour."}
 library(DiagrammeR)
@@ -117,14 +116,13 @@ grViz(diagram = "digraph flowchart {
   ")
 ```
 
-
 ## Environment
 
-The environment presents the set of possible relationships an individual could learn.  It is represented here as network (matrix) cues, with the edges between cues indicating learnable associations. The environment presented here is a variation of fitness-based network model using rank-based sampling. This is inspired by the ubiquity of scaling laws in the cognitive sciences and the natural world [@Kello2010ga]. This assumes a power-law relation in the frequency of cues: Each cue is assigned a rank, $r$, from 1 to 1000.  Then pairs of cues are chosen from the lexicon with probability $p \propto r^{-a}$ and an edge is created between them. Here $a$ is set to $.1$ and 2000 edges are created. A scale-free network is not required to get the aging result shown below---for example, an Erdös-Renyi random graph produces the same qualitative pattern.  In addition, the number of words available to learn could increase across the lifespan, as proposed by @brysbaert2016many and following  _Herdan-Heaps' law_  [@Serrano:2009cv;@petersen2012languages]. Again, the qualitative results are the same. Examples are provided in the Supplementary material. 
+The environment presents the set of possible relationships an individual could learn. It is represented here as network (matrix) cues, with the edges between cues indicating learnable associations. The environment presented here is a variation of fitness-based network model using rank-based sampling. This is inspired by the ubiquity of scaling laws in the cognitive sciences and the natural world [@Kello2010ga]. This assumes a power-law relation in the frequency of cues: Each cue is assigned a rank, $r$, from 1 to 1000. Then pairs of cues are chosen from the lexicon with probability $p \propto r^{-a}$ and an edge is created between them. Here $a$ is set to $.1$ and 2000 edges are created. A scale-free network is not required to get the aging result shown below---for example, an Erdös-Renyi random graph produces the same qualitative pattern. In addition, the number of words available to learn could increase across the lifespan, as proposed by @brysbaert2016many and following *Herdan-Heaps' law* [@Serrano:2009cv; @petersen2012languages]. Again, the qualitative results are the same. Examples are provided in the Supplementary material.
 
-## Representation 
+## Representation
 
-Contemporary accounts characterize learning as minimizing prediction error, which is a fundamental assumption among models of reinforcement learning [@sutton2018reinforcement;@dayan2005theoretical;@mcclelland1981interactive;@hoppe2022exploration]. The Rescorla-Wagner model [@rescorla1972theory] captures this phenomenology and is a model on which many subsequent models have been based [e.g., @sutton1981toward;@trimmer2012does]. Moreover, it captures phenomenology like association learning, blocking, inhibition, and extinction. 
+Contemporary accounts characterize learning as minimizing prediction error, which is a fundamental assumption among models of reinforcement learning [@sutton2018reinforcement; @dayan2005theoretical; @mcclelland1981interactive; @hoppe2022exploration]. The Rescorla-Wagner model [@rescorla1972theory] captures this phenomenology and is a model on which many subsequent models have been based [e.g., @sutton1981toward; @trimmer2012does]. Moreover, it captures phenomenology like association learning, blocking, inhibition, and extinction.
 
 The Rescorla-Wagner model formalizes learning as a process of minimizing prediction error between the values of an observed outcome, $\lambda_j$ and a predictive cue, $V_i$, where $j$ and $i$ represent specific outcomes and cues, respectively. The prediction error is the difference $(\lambda_j-V_i)$ and it is minimized following each learning event according to the following rule:
 
@@ -138,33 +136,31 @@ $$
 V_{C \rightarrow U, t+1} = V_{C \rightarrow U, t} + \Delta V_{C \rightarrow U, t}
 $$
 
-Here we allow the representation to be formed by learning from the environment over the lifetime.  To do this, we allow learning to take place over four epochs, each with 500 learning events. Each learning event randomly samples a relationship from the environment represented as an edge in the environment network. Then one of the associates is randomly assigned as the cue and the other as the outcome, and the representation is updated according to the Rescorla-Wagner model with $\alpha=1$ and $\beta=.2$ and $\lambda_i=1$. 
+Here we allow the representation to be formed by learning from the environment over the lifetime. To do this, we allow learning to take place over four epochs, each with 500 learning events. Each learning event randomly samples a relationship from the environment represented as an edge in the environment network. Then one of the associates is randomly assigned as the cue and the other as the outcome, and the representation is updated according to the Rescorla-Wagner model with $\alpha=1$ and $\beta=.2$ and $\lambda_i=1$.
 
 ## Behaviour
 
-The two stylized facts associated with cognitive aging are rising entropy and a reduction in pairwise similarity judgments. Each of these is recovered from the representation as follows. 
+The two stylized facts associated with cognitive aging are rising entropy and a reduction in pairwise similarity judgments. Each of these is recovered from the representation as follows.
 
 ### Rising entropy
 
-Rising entropy refers to the reduction in the predictability of free association targets as individuals age [@dubossarsky2017quantifying].    We can measure this using _Shannon's information entropy_.  This measures the surprisingness of associate given the presence of a cue.  Because the output of Rescorla-Wagner learning is a weighted edge, we can compute this for every cue in the network representation as follows: 
+Rising entropy refers to the reduction in the predictability of free association targets as individuals age [@dubossarsky2017quantifying]. We can measure this using *Shannon's information entropy*. This measures the surprisingness of associate given the presence of a cue. Because the output of Rescorla-Wagner learning is a weighted edge, we can compute this for every cue in the network representation as follows:
 
 $$
 H = -\sum_{i=1}^{k}  p_i log(p_i)
-$$
-Here, $p_i$ is the proportion of the weight along edge $i$ for all $k$ edges. That is, $p_i = \frac{w_i}{\sum_k w_k}$. 
+$$ Here, $p_i$ is the proportion of the weight along edge $i$ for all $k$ edges. That is, $p_i = \frac{w_i}{\sum_k w_k}$.
 
 ### Similarity
-To simulate similarity judgments, we will create a measure of co-activation between cues.  To do this, we will allowing spreading activation to leave one node and measuring activation at the other node, $A_{j \rightarrow k}$. This allows us to measure the extent to which one word co-activates the other. Doing this for both cues, we take similarity as the summed co-activation. 
+
+To simulate similarity judgments, we will create a measure of co-activation between cues. To do this, we will allowing spreading activation to leave one node and measuring activation at the other node, $A_{j \rightarrow k}$. This allows us to measure the extent to which one word co-activates the other. Doing this for both cues, we take similarity as the summed co-activation.
 
 $$
 S = A_{j \rightarrow k} + A_{j \rightarrow k}
 $$
 
-We will measure this similarity for all node pairs in the representation. 
+We will measure this similarity for all node pairs in the representation.
 
 # Results
-
-
 
 ```{r sim1, cache=TRUE, eval = FALSE}
 
@@ -190,17 +186,17 @@ rescorlaWagner <- function(vmat = vmat, cue, outcome, alpha=1, beta=.2) {
 
 ##### Environment Parameters #####
 
-# world parameters
+# World parameters
 wordsInWorld=1000
 Associates = 2000 # Edges in environment
-# set learning events and age classes
+# Set learning events and age classes
 learningEvents <- 500 
 ageEpochs = 4
 
 #### Build Environment #####
 
 x <- 1:wordsInWorld
-a = 0 # set to .1 for ranking and 0 for even
+a = 0 # set to .1 for ranking and 0 for ER with fixed number
 pairs <- c()
 for(i in 1:Associates){
   pairs <- rbind(pairs, sample(x, size = 2, prob=x^(-a), replace = FALSE))
@@ -326,8 +322,6 @@ for(lage in 1:ageEpochs){
 
 ```
 
-
-
 ```{r entropySim, fig.cap="The rising entropy and falling similarity of the aging lexicon as a function of learning. ", cache=TRUE, fig.height=3.4, eval = FALSE}
 
 #### Set Plot Parameters ####
@@ -343,9 +337,9 @@ plot(x, edgeE[1:ageEpochs], xlab = "Age", ylab = "Entropy", type = "b", cex.lab 
 #### Compute and Plot Similarity
 
 # choose target pairs, from first training data (firsttraindata)
-# learningPairs = 50 # this 50 random pairs
-# simpair <- firsttraindata[sample(seq(1:nrow(firsttraindata)), learningPairs ),]
-simpair <- firsttraindata # this takes all pairs
+ learningPairs = 20 # this 50 random pairs
+ simpair <- firsttraindata[sample(seq(1:nrow(firsttraindata)), learningPairs ),]
+# simpair <- firsttraindata # this takes all pairs
 # set initial activation levels
 simpair <- data.frame(simpair, activation = 100)
 # assign column names
@@ -386,10 +380,9 @@ agex <- 1:ageEpochs
 plot(agex, sed$similarity[1:ageEpochs], xlab = "Age", ylab = "Similarity", type="b", cex.lab = 1.3)
 ```
 
-
 # Discussion
 
-Because edges were formed in @dubossarsky2017quantifying and @wulff2019new by requiring a minimun number of cue-target associations in the free association task, rising entropy corresponds to a less predictable pattern of cue-target associations and the lower likelihood of an edge between any cue-target pair. As a consequence, representational networks with higher entropy will produce behaviour networks that are more sparse. 
+Because edges were formed in @dubossarsky2017quantifying and @wulff2019new by requiring a minimun number of cue-target associations in the free association task, rising entropy corresponds to a less predictable pattern of cue-target associations and the lower likelihood of an edge between any cue-target pair. As a consequence, representational networks with higher entropy will produce behaviour networks that are more sparse.
 
 \newpage
 
