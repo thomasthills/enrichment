@@ -187,8 +187,8 @@ rescorlaWagner <- function(vmat = vmat, cue, outcome, alpha=1, beta=.2) {
 ##### Environment Parameters #####
 
 # World parameters
-wordsInWorld=1000
-Associates = 2000 # Edges in environment
+wordsInWorld=500
+Associates = 1000 # Edges in environment
 # Set learning events and age classes
 learningEvents <- 500 
 ageEpochs = 4
