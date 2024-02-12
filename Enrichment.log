@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2024.1.22)  10 FEB 2024 20:54
+This is pdfTeX, Version 3.141592653-2.6-1.40.25 (TeX Live 2023) (preloaded format=pdflatex 2024.1.22)  12 FEB 2024 15:03
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -647,53 +647,37 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 216.
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 ) [1{/Users/thomashills/Library/TinyTeX/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/Users/thomashills/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}
 
-] [2]
-Underfull \vbox (badness 1838) has occurred while \output is active []
-
-[3]
+] [2] [3] [4]
 Underfull \vbox (badness 7649) has occurred while \output is active []
 
-[4]
+[5]
 Underfull \vbox (badness 3977) has occurred while \output is active []
 
-[5]
+[6]
 
-LaTeX Warning: Reference `fig:ERR' on page 6 undefined on input line 247.
+LaTeX Warning: Reference `fig:ERR' on page 7 undefined on input line 257.
 
 \openout4 = `Enrichment.fff'.
 
-(Enrichment.fff) [6{/Users/thomashills/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}{/Users/thomashills/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{/Users/thomashills/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}] [7] [8{/Users/thomashills/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}]
-<Enrichment_files/figure-latex/sim1-1.pdf, id=105, 179.67125pt x 179.67125pt>
-File: Enrichment_files/figure-latex/sim1-1.pdf Graphic file (type pdf)
-<use Enrichment_files/figure-latex/sim1-1.pdf>
-Package pdftex.def Info: Enrichment_files/figure-latex/sim1-1.pdf  used on input line 308.
-(pdftex.def)             Requested size: 179.6845pt x 179.6845pt.
-<Enrichment_files/figure-latex/sim1-2.pdf, id=106, 427.5975pt x 116.435pt>
-File: Enrichment_files/figure-latex/sim1-2.pdf Graphic file (type pdf)
-<use Enrichment_files/figure-latex/sim1-2.pdf>
-Package pdftex.def Info: Enrichment_files/figure-latex/sim1-2.pdf  used on input line 308.
-(pdftex.def)             Requested size: 427.59645pt x 116.43471pt.
-[9 <./Enrichment_files/figure-latex/sim1-1.pdf> <./Enrichment_files/figure-latex/sim1-2.pdf>]
+(Enrichment.fff) [7{/Users/thomashills/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathit.enc}] [8{/Users/thomashills/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}{/Users/thomashills/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-rm.enc}] [9{/Users/thomashills/Library/TinyTeX/texmf-dist/fonts/enc/dvips/lm/lm-mathex.enc}] [10]
 Underfull \vbox (badness 1028) has occurred while \output is active []
 
-[10]
+[11]
 Underfull \vbox (badness 10000) has occurred while \output is active []
 
-[11] AED endfloat: Processing end Figures and Tables [12] (./Enrichment.fff
-<Enrichment_files/figure-latex/Figure1-1.pdf, id=168, 953.5625pt x 279.0425pt>
+[12]
+Underfull \vbox (badness 10000) has occurred while \output is active []
+
+[13] AED endfloat: Processing end Figures and Tables [14] (./Enrichment.fff
+<Enrichment_files/figure-latex/Figure1-1.pdf, id=169, 953.5625pt x 279.0425pt>
 File: Enrichment_files/figure-latex/Figure1-1.pdf Graphic file (type pdf)
 <use Enrichment_files/figure-latex/Figure1-1.pdf>
 Package pdftex.def Info: Enrichment_files/figure-latex/Figure1-1.pdf  used on input line 5.
 (pdftex.def)             Requested size: 469.76689pt x 137.46861pt.
-<Enrichment_files/figure-latex/entropySim-1.pdf, id=169, 431.6125pt x 204.765pt>
-File: Enrichment_files/figure-latex/entropySim-1.pdf Graphic file (type pdf)
-<use Enrichment_files/figure-latex/entropySim-1.pdf>
-Package pdftex.def Info: Enrichment_files/figure-latex/entropySim-1.pdf  used on input line 12.
-(pdftex.def)             Requested size: 431.6246pt x 204.77072pt.
-) [13
+) [15
 
 
- <./Enrichment_files/figure-latex/Figure1-1.pdf>] [14 <./Enrichment_files/figure-latex/entropySim-1.pdf>] (./Enrichment.aux)
+ <./Enrichment_files/figure-latex/Figure1-1.pdf>] (./Enrichment.aux)
  ***********
 LaTeX2e <2023-11-01> patch level 1
 L3 programming layer <2020/03/25>
@@ -705,18 +689,18 @@ Package rerunfilecheck Info: File `Enrichment.out' has not changed.
 (rerunfilecheck)             Checksum: 9C08D20FAF5AEE216BD658139F87712A;1327.
  ) 
 Here is how much of TeX's memory you used:
- 15982 strings out of 476132
- 260168 string characters out of 5793818
- 1936539 words of memory out of 5000000
- 37693 multiletter control sequences out of 15000+600000
+ 15968 strings out of 476132
+ 259200 string characters out of 5793818
+ 1935539 words of memory out of 5000000
+ 37671 multiletter control sequences out of 15000+600000
  601288 words of font info for 71 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 72i,11n,79p,1873b,566s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 72i,11n,79p,1760b,566s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmex10.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi12.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi6.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmmi8.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr12.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmr8.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmri12.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmss8.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy10.pfb></Users/thomashills/Library/TinyTeX/texmf-dist/fonts/type1/public/lm/lmsy8.pfb>
-Output written on Enrichment.pdf (14 pages, 1114480 bytes).
+Output written on Enrichment.pdf (15 pages, 187015 bytes).
 PDF statistics:
- 273 PDF objects out of 1000 (max. 8388607)
- 217 compressed objects within 3 object streams
- 67 named destinations out of 1000 (max. 500000)
- 109 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 262 PDF objects out of 1000 (max. 8388607)
+ 214 compressed objects within 3 object streams
+ 75 named destinations out of 1000 (max. 500000)
+ 94 words of extra memory for PDF output out of 10000 (max. 10000000)
 
