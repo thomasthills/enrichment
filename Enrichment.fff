@@ -3,5 +3,29 @@
 
 \centering
 \includegraphics{Enrichment_files/figure-latex/Figure1-1.pdf}
-\caption{\label{fig:Figure1}The process of translating experiences into behaviour via reprepresentation. Arrows represent processes that translate one domain into another. Thus learning translates experience into a representation and additional cognitive processes, such as associative recall, or similarity evaluations translate representations into behaviour.}
+\caption{\label{fig:Figure1}The process of translating environmental experiences into behaviour. Arrows represent processes that translate one domain into another. Learning translates experience into a cognitive representation. Additional cognitive processes then act on the representation to generate behavior.}
+\end{figure*}
+\begin{figure*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+\centering
+\includegraphics{Enrichment_files/figure-latex/fig1-1.pdf}
+\caption{\label{fig:fig1}The structure of the environment.}
+\end{figure*}
+\begin{figure*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+\centering
+\includegraphics{Enrichment_files/figure-latex/fig2-1.pdf}
+\caption{\label{fig:fig2}The growing mental lexicon.}
+\end{figure*}
+\begin{figure*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\centering \includegraphics[width=1\linewidth]{EntropySim}
+
+}
+
+\caption{Entropy and similarity measures computed from the cognitive representation at different epochs of development.}\label{fig:unnamed-chunk-1}
 \end{figure*}
