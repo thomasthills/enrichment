@@ -251,7 +251,7 @@ The enrichment account envisions behavior as the outcome of learning relationshi
   \emph{Behavior}: Behavior is recovery of information from the cognitive representation appropriate to the environmental context. This generates free-associations, memory search, similarity judgments, and so on.
 \end{enumerate}
 
-These stages are presented in Figure \ref{fig:ERR} and each are explained in detail below.
+These stages are presented in Figure \ref{fig:Figure1} and each are explained in detail below.
 
 \begin{figure}
 \centering
@@ -337,6 +337,20 @@ We measure this similarity for all node pairs in the representation.
 }
 
 \caption{Entropy and similarity measures computed from the cognitive representation at different epochs of development.}\label{fig:unnamed-chunk-1}
+\end{figure}
+
+\hypertarget{the-network-of-associations}{%
+\section{The network of associations}\label{the-network-of-associations}}
+
+As noted above, Dubossarsky et al. (2017) and others found that free association networks collected across the adult lifespan showed patterns of decreasing network degree, increasing average shortest path length, and decreasing clustering coefficient. We can simulate this on the above cognitive representations across the four epochs as follows. For each cognitive representation, we simulate 10 participants who retrieve 3 associates from each of 30 cues. The three associates are sampled without replacement for each participant and each cue in proportion to the associative strength encoded in the cognitive representation, i.e., the output from the Rescorla-Wagner training epochs. Negative association strengths are set to 0. This produces a cue by associate matrix, which each cell indicates the number of times each associate was produced in response to each cue. From this matrix, cue-by-cue similarities can be computed using cosine similarity. To transform these into unweighted and undirected networks, the median cue-by-cue similarity is computed across all epochs and then, for each age, cue similarities below this median value are set to 0, and all other values are set to 1. This matrix is then transformed into a network on which degree (the number of connections), average shortest path length (the shortest number of edges between cues), and clustering coefficient (the proportion of a node's neighbors that are themselves connected) are computed. This entire process is repeated for 50 different initial starting environments. The results are shown in Figure ???, and they follow the pattern found by Dubossarsky et al. (2017). This suggests that the results found in previous work in association with the aging lexicon could in principle be a consequence of lifelong learning.
+
+\begin{figure}
+
+{\centering \includegraphics[width=1\linewidth]{NetworkAssociations} 
+
+}
+
+\caption{The degree, average shortest path length, and clustering coefficient for networks of associations across the lifespan. Simulations were repeated for learning in 100 different environments ($a=1$) with four training epochs each ($beta=.1$), as in Figure 3, which were then each sampled from by 10 simulated participants who each retrieved 3 associates for each of 30 cues with probability proportional to associative strengths output from the Rescorla-Wagner training epoch. The cosine similarity of cues was then computed on the resulting cue by associate network to produce associative networks for each epoch. These networks were then thresholded separately for each learning environment by the median similarity value across all ages. Results are consistent with Dubossarsky et al., 2017.}\label{fig:unnamed-chunk-2}
 \end{figure}
 
 \hypertarget{discussion}{%

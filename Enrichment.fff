@@ -9,8 +9,8 @@
 \ifnextchar[{\eatarg}{}
 
 \centering
-\includegraphics{Enrichment_files/figure-latex/fig1-1.pdf}
-\caption{\label{fig:fig1}The structure of the environment.}
+\includegraphics{Enrichment_files/figure-latex/Figure2-1.pdf}
+\caption{\label{fig:Figure2}The structure of the environment for two network types: a scale-free network (\(a=1\)) and an Erdös-Renyi random graph (\(a=0\)). Each network has 500 concepts (or nodes) and the weighted edges between them are the result of repeatedly sampling pairs of nodes and adding 1 to the edge weight between the pairs. The degree distributions are shown to help communicate the difference in the underlying structure.}
 \end{figure*}
 \begin{figure*}[hbt]
 \ifnextchar[{\eatarg}{}
@@ -23,9 +23,19 @@
 \ifnextchar[{\eatarg}{}
 
 
-{\centering \includegraphics[width=1\linewidth]{EntropySim}
+{\centering \includegraphics[width=1\linewidth]{EntropySim1000.1to.5}
 
 }
 
-\caption{Entropy and similarity measures computed from the cognitive representation at different epochs of development.}\label{fig:unnamed-chunk-1}
+\caption{Entropy and similarity measures computed from the cognitive representation at different epochs of development.}\label{fig:figure3}
+\end{figure*}
+\begin{figure*}[hbt]
+\ifnextchar[{\eatarg}{}
+
+
+{\centering \includegraphics[width=1\linewidth]{NetworkAssociations1000}
+
+}
+
+\caption{The degree, average shortest path length, and clustering coefficient for networks of associations across the lifespan. Simulations were repeated for learning cognitive representations in 1000 different environments ($a=1$) with four training epochs each of 200 learning events each($beta=.1$). Representations were then each sampled from by 10 simulated participants who each retrieved 3 associates for each of 30 cues with probability proportional to the associative strengths output from the Rescorla-Wagner training epochs. The cosine similarity of cues was then computed from the cue by association matrix to produce associative networks for each epoch. These networks were then thresholded separately for each learning environment by the median similarity value across all ages. Error bars indicate one standard deviation. Results are consistent with Dubossarsky et al., 2017.}\label{fig:Figure5}
 \end{figure*}

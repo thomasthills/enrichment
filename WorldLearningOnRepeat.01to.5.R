@@ -23,8 +23,9 @@ Associates = 2000 # Edges in environment
 # Set learning events and age classes
 learningEvents <- 200 
 ageEpochs = 4
-Worlds = 1000
-Betas = seq(.02,.10, .02)
+Worlds = 100
+#Betas = seq(.1,.5, .1)
+Betas = c(.001,.01, .1, .5 )
 
 alphas <- c(0,1)
 
@@ -32,7 +33,7 @@ Elist <- list(NULL)
 Slist <- list(NULL)
 
 for(alphai in 1:length(alphas)){
- 
+  
   EEB <- matrix(NA, nrow=length(Betas), ncol = 4)
   SSB <- matrix(NA, nrow=length(Betas), ncol = 4)
   
@@ -43,7 +44,7 @@ for(alphai in 1:length(alphas)){
     SS <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
     
     for(woi in 1:Worlds){
-        
+      
       # Build the world
       x <- 1:wordsInWorld
       a = alphas[alphai] # set to 1 for ranking and 0 for ER with fixed number
@@ -57,7 +58,7 @@ for(alphai in 1:length(alphas)){
       # Add isolates if number of vertices is not 500
       difamt = 500-length(V(ii))
       if (difamt > 0){
-       ii <-  add_vertices(ii,difamt)
+        ii <-  add_vertices(ii,difamt)
       }
       
       # Rename graph for learning representation 
@@ -137,7 +138,7 @@ for(alphai in 1:length(alphas)){
         # plot(g2, vertex.size = 1, edge.arrow.size = 0, vertex.label=NA, layout=layout_with_fr(g2))
         # label first one in 'learned'
         # if(lage == 1){
-         #  text(0, 1.5, "Learned lexicon")
+        #  text(0, 1.5, "Learned lexicon")
         # }
         # label all with iterations
         # its <- lage*learningEvents
@@ -198,18 +199,18 @@ for(alphai in 1:length(alphas)){
     mses <- apply(SS, 2, mean)
     sdes <- apply(SS, 2, sd)
     sdes <- sdes/sqrt(nrow(SS))
-   
+    
     EEB[bis,] <- msee 
     SSB[bis,] <- mses 
   }
   
-Elist[[alphai]] <- EEB
-Slist[[alphai]] <- SSB
+  Elist[[alphai]] <- EEB
+  Slist[[alphai]] <- SSB
 }
 
-pdf(file="EntropySim1000.pdf", width=9, height=6)
+#pdf(file="EntropySim.01to.5.pdf", width=9, height=6)
 par(mfrow=c(1,2))
-plot(1:4, Elist[[1]][1,], ylim = c(0, 2.7), cex = 0, xlab = "Epoch", ylab = "Entropy", cex.lab=1.5, xaxt="n")
+plot(1:4, Elist[[1]][1,], ylim = c(0, 3.), cex = 0, xlab = "Epoch", ylab = "Entropy", cex.lab=1.5, xaxt="n")
 axis(1, at=1:4, labels=c("1","2","3","4") )
 for(i in 1:nrow(Elist[[1]])){
   lines(1:4, Elist[[1]][i,], lty = i, lwd = 1.5)
@@ -219,7 +220,7 @@ for(i in 1:nrow(Elist[[2]])){
 }
 
 
-plot(1:4, Slist[[1]][1,], cex = 0, ylim =c(0, 80), xlab = "Epoch", ylab = "Similarity", cex.lab = 1.5, xaxt="n")
+plot(1:4, Slist[[1]][1,], cex = 0, ylim =c(0, 150), xlab = "Epoch", ylab = "Similarity", cex.lab = 1.5, xaxt="n")
 axis(1, at=1:4, labels=c("1","2","3","4") )
 for(i in 1:nrow(Slist[[1]])){
   lines(1:4, Slist[[1]][i,], lty = i, lwd=1.5)
@@ -227,6 +228,8 @@ for(i in 1:nrow(Slist[[1]])){
 for(i in 1:nrow(Slist[[2]])){
   lines(1:4, Slist[[2]][i,], lty = i, col = "red", lwd=1.5)
 }
-legend(2.8, 80, legend=c(TeX('0'),TeX('1')), title=TeX(''),col = c("black", "red"), lty = 1, bty="n", lwd = 1.5 )
-legend(2.8, 60, legend=c(TeX('.1'), TeX('.2'), TeX('.3'),TeX('.4'),TeX('.5')), title=TeX('\\beta'), lty = 1:5, bty="n", lwd=1.5)
-dev.off()
+legend(2.9, 150, legend=c(TeX('0'),TeX('1')), title=TeX('a'),col = c("black", "red"), lty = 1, bty="n", lwd = 1.5, cex = .9)
+legend(2.9, 125, legend=c(TeX('.001'), TeX('.01'), TeX('.1'),TeX('.5')), title=TeX('\\beta'), lty = 1:4, bty="n", lwd=1.4, cex = .9)
+#dev.off()
+
+#save(Elist, Slist, file="WorldLearnerFrom.01to.5.RData")

@@ -1,5 +1,7 @@
 # Simulation to recreate environment and cognition and entropy/similarity measures
 
+# Larger network 1000 nodes, 5000 edges 1000 learning events
+
 set.seed(1)
 ##### Rescorla Wagner function ######
 
@@ -18,13 +20,13 @@ rescorlaWagner <- function(vmat = vmat, cue, outcome, alpha=1, beta=.2) {
 
 
 # World parameters (500/2000/200 for)
-wordsInWorld=500
-Associates = 2000 # Edges in environment
+wordsInWorld=1000
+Associates = 5000 # Edges in environment
 # Set learning events and age classes
-learningEvents <- 200 
+learningEvents <- 1000 
 ageEpochs = 4
-Worlds = 1000
-Betas = seq(.02,.10, .02)
+Worlds =10 
+Betas = seq(.1,.5, .1)
 
 alphas <- c(0,1)
 
@@ -32,7 +34,7 @@ Elist <- list(NULL)
 Slist <- list(NULL)
 
 for(alphai in 1:length(alphas)){
- 
+  
   EEB <- matrix(NA, nrow=length(Betas), ncol = 4)
   SSB <- matrix(NA, nrow=length(Betas), ncol = 4)
   
@@ -43,7 +45,7 @@ for(alphai in 1:length(alphas)){
     SS <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
     
     for(woi in 1:Worlds){
-        
+      
       # Build the world
       x <- 1:wordsInWorld
       a = alphas[alphai] # set to 1 for ranking and 0 for ER with fixed number
@@ -54,10 +56,10 @@ for(alphai in 1:length(alphas)){
       # Make graph from pairs
       ii <- graph_from_edgelist(pairs,directed=FALSE) 
       
-      # Add isolates if number of vertices is not 500
-      difamt = 500-length(V(ii))
+      # Add isolates if number of vertices is not wordsInWorld 
+      difamt = wordsInWorld-length(V(ii))
       if (difamt > 0){
-       ii <-  add_vertices(ii,difamt)
+        ii <-  add_vertices(ii,difamt)
       }
       
       # Rename graph for learning representation 
@@ -107,9 +109,6 @@ for(alphai in 1:length(alphas)){
         # take subgraph of learnable words (only nec. if growing)
         gle <- igraph::subgraph(gle, 1:ageWords)
         nodeCount[lage] <- length(V(gle))
-        # Remove negative edges
-        negativeEdges <- which(E(gle)$weight < 0)
-        gle <- igraph::delete_edges(gle, negativeEdges)
         # save learned representation
         ageNetworkList[[lage]] <- gle
         # copy network
@@ -137,7 +136,7 @@ for(alphai in 1:length(alphas)){
         # plot(g2, vertex.size = 1, edge.arrow.size = 0, vertex.label=NA, layout=layout_with_fr(g2))
         # label first one in 'learned'
         # if(lage == 1){
-         #  text(0, 1.5, "Learned lexicon")
+        #  text(0, 1.5, "Learned lexicon")
         # }
         # label all with iterations
         # its <- lage*learningEvents
@@ -198,18 +197,18 @@ for(alphai in 1:length(alphas)){
     mses <- apply(SS, 2, mean)
     sdes <- apply(SS, 2, sd)
     sdes <- sdes/sqrt(nrow(SS))
-   
+    
     EEB[bis,] <- msee 
     SSB[bis,] <- mses 
   }
   
-Elist[[alphai]] <- EEB
-Slist[[alphai]] <- SSB
+  Elist[[alphai]] <- EEB
+  Slist[[alphai]] <- SSB
 }
 
-pdf(file="EntropySim1000.pdf", width=9, height=6)
+pdf(file="EntropySim100050001000.pdf", width=9, height=6)
 par(mfrow=c(1,2))
-plot(1:4, Elist[[1]][1,], ylim = c(0, 2.7), cex = 0, xlab = "Epoch", ylab = "Entropy", cex.lab=1.5, xaxt="n")
+plot(1:4, Elist[[1]][1,], ylim = c(0, 4), cex = 0, xlab = "Epoch", ylab = "Entropy", cex.lab=1.5, xaxt="n")
 axis(1, at=1:4, labels=c("1","2","3","4") )
 for(i in 1:nrow(Elist[[1]])){
   lines(1:4, Elist[[1]][i,], lty = i, lwd = 1.5)
@@ -219,7 +218,7 @@ for(i in 1:nrow(Elist[[2]])){
 }
 
 
-plot(1:4, Slist[[1]][1,], cex = 0, ylim =c(0, 80), xlab = "Epoch", ylab = "Similarity", cex.lab = 1.5, xaxt="n")
+plot(1:4, Slist[[1]][1,], cex = 0, ylim =c(0, 18), xlab = "Epoch", ylab = "Similarity", cex.lab = 1.5, xaxt="n")
 axis(1, at=1:4, labels=c("1","2","3","4") )
 for(i in 1:nrow(Slist[[1]])){
   lines(1:4, Slist[[1]][i,], lty = i, lwd=1.5)
@@ -227,6 +226,6 @@ for(i in 1:nrow(Slist[[1]])){
 for(i in 1:nrow(Slist[[2]])){
   lines(1:4, Slist[[2]][i,], lty = i, col = "red", lwd=1.5)
 }
-legend(2.8, 80, legend=c(TeX('0'),TeX('1')), title=TeX(''),col = c("black", "red"), lty = 1, bty="n", lwd = 1.5 )
-legend(2.8, 60, legend=c(TeX('.1'), TeX('.2'), TeX('.3'),TeX('.4'),TeX('.5')), title=TeX('\\beta'), lty = 1:5, bty="n", lwd=1.5)
+legend(2.8, 18, legend=c(TeX('0'),TeX('1')), title=TeX('a'),col = c("black", "red"), lty = 1, bty="n", lwd = 1.5 )
+legend(2.8, 15, legend=c(TeX('.1'), TeX('.2'), TeX('.3'),TeX('.4'),TeX('.5')), title=TeX('\\beta'), lty = 1:5, bty="n", lwd=1.5)
 dev.off()

@@ -23,8 +23,8 @@ Associates = 2000 # Edges in environment
 # Set learning events and age classes
 learningEvents <- 200 
 ageEpochs = 4
-Worlds = 1000
-Betas = seq(.02,.10, .02)
+Worlds = 10
+Betas = seq(.1,.5, .1)
 
 alphas <- c(0,1)
 
@@ -98,7 +98,9 @@ for(alphai in 1:length(alphas)){
         for(i in 1:learningEvents){
           cue_outcome <- traindata[i,]
           cue_outcome<- sample(as.vector(cue_outcome))
-          vmat <- rescorlaWagner(vmat, cue=c(n, cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
+          #vmat <- rescorlaWagner(vmat, cue=c(n, cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
+          # Do above without context
+          vmat <- rescorlaWagner(vmat, cue=c(cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
         }
         # make undirected graph from representation 
         gle <- graph_from_adjacency_matrix(vmat, weighted=TRUE, diag=FALSE, mode = "undirected")
@@ -207,9 +209,9 @@ Elist[[alphai]] <- EEB
 Slist[[alphai]] <- SSB
 }
 
-pdf(file="EntropySim1000.pdf", width=9, height=6)
+pdf(file="EntropySim1000.1to.5NoContext.pdf", width=9, height=6)
 par(mfrow=c(1,2))
-plot(1:4, Elist[[1]][1,], ylim = c(0, 2.7), cex = 0, xlab = "Epoch", ylab = "Entropy", cex.lab=1.5, xaxt="n")
+plot(1:4, Elist[[1]][1,], ylim = c(0, 1.2), cex = 0, xlab = "Epoch", ylab = "Entropy", cex.lab=1.5, xaxt="n")
 axis(1, at=1:4, labels=c("1","2","3","4") )
 for(i in 1:nrow(Elist[[1]])){
   lines(1:4, Elist[[1]][i,], lty = i, lwd = 1.5)
@@ -219,7 +221,7 @@ for(i in 1:nrow(Elist[[2]])){
 }
 
 
-plot(1:4, Slist[[1]][1,], cex = 0, ylim =c(0, 80), xlab = "Epoch", ylab = "Similarity", cex.lab = 1.5, xaxt="n")
+plot(1:4, Slist[[1]][1,], cex = 0, ylim =c(0, 150), xlab = "Epoch", ylab = "Similarity", cex.lab = 1.5, xaxt="n")
 axis(1, at=1:4, labels=c("1","2","3","4") )
 for(i in 1:nrow(Slist[[1]])){
   lines(1:4, Slist[[1]][i,], lty = i, lwd=1.5)
@@ -227,6 +229,8 @@ for(i in 1:nrow(Slist[[1]])){
 for(i in 1:nrow(Slist[[2]])){
   lines(1:4, Slist[[2]][i,], lty = i, col = "red", lwd=1.5)
 }
-legend(2.8, 80, legend=c(TeX('0'),TeX('1')), title=TeX(''),col = c("black", "red"), lty = 1, bty="n", lwd = 1.5 )
-legend(2.8, 60, legend=c(TeX('.1'), TeX('.2'), TeX('.3'),TeX('.4'),TeX('.5')), title=TeX('\\beta'), lty = 1:5, bty="n", lwd=1.5)
+legend(2.9, 150, legend=c(TeX('0'),TeX('1')), title=TeX('a'),col = c("black", "red"), lty = 1, bty="n", lwd = 1.5, cex = .9)
+legend(1, 50, legend=c(TeX('.1'), TeX('.2'), TeX('.3'),TeX('.4'), TeX('.5')), title=TeX('\\beta'), lty = 1:4, bty="n", lwd=1.4, cex = .9)
 dev.off()
+
+#save(Elist, Slist, file="WorldLearnerFrom.1to.5.RData")
