@@ -1,0 +1,80 @@
+---
+title: "Supplemental Material for **An Enrichment account of cognitive aging** by Thomas T. Hills "
+date: "2024-04-11"
+
+bibliography      : /Users/thomashills/Dropbox/Life_3.0_db/Books/BNS_Hills/BNS_Github/enrichment/enrichment.bib 
+
+floatsintext      : yes 
+linenumbers       : no 
+fig_caption       : yes
+
+classoption       : "man"
+toc               : false
+
+output:  bookdown::pdf_document2
+always_allow_html: true
+---
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+```
+
+The primary purpose of the Supplemental Material is to demonstrate that the results presented in the main text are robust to varying the environmental network, the learning rates, and learning events over a wide range of parameter values.
+
+# Network Size 
+
+ The size of the network is inconsequential to the patterns of results presented in the main manuscript. For example,  increasing the number of nodes in the environment network by a factor of 10 ($n=5000$), and the number of edges by a factor of 50 ($m=100000$), produces the results shown in Figure \@ref(fig:Figure1). The results are created via the same processes described in the main text, with $1000$ learning trails for each epoch. This is demonstrated for both a weighted scale-free network ($a=1$) and the weighted Erdös-Renyi random graph ($a=0$), with learning rates equivalent to $\beta=0.01$ and $0.1$.  The results shown here are the average of 10 simulations. However, each of these 10 simulations shows the same rising and falling pattern for entropy and similarity, respectively. Below results are shown for a variety of network sizes and associative pairs in the environment.
+
+
+```{r Figure1, echo=FALSE,out.width="100%", fig.cap="Large environmental network. Entropy and similarity measures computed from the cognitive representation at different epochs of development for a larger network of $5000$ concepts and $100000$ associative pairs sampled for environment construction.  Epochs are 1000 training events long.",fig.show='hold',fig.align='center'}
+
+knitr::include_graphics(c("EntropySim50001000001000.pdf"))
+
+```
+
+# Relative density of associations
+
+Figure \@ref(fig:Figure2) shows how increasing the network size relative to a fixed number of associations influences the rise of entropy and the fall of similarity. This uses $a=1$ with $200$ learning events and $2000$ pairs sampled to construct the environment. The smallest of the networks, $n=100$, produces an undirected edge density after environment construction of $d=0.40$.  The largest of these networks, $n=5000$, produces an undirected edge density of $d=00016$.  This encompases the density observed in the small world of words free association networks ($0.0015$) by an order of magnitude in both directions [@de2019small]. Smaller networks have a higher density of associations, and this increases entropy but reduces similarity measures. Larger networks with lower density have lower entropy and higher similarity ratings. 
+
+```{r Figure2, echo=FALSE,out.width="100%", fig.cap="Varying the environmental network size. Entropy and similarity measures computed from the cognitive representation at different epochs of development for environmental networks of different sizes.  Epochs are 200 training events long.",fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("EntropySimvariablesizes.1.pdf"))
+```
+
+Figure \@ref(fig:Figure3) varies the number of associative relations used to build the environment from $100$ to $10000$. This is for a $500$ concept learning environment with $200$ learning events per epoch and $\beta = 0.1$. The general pattern of rising entropy and falling similarity is preserved for all cases. With more possible relations in the environment, the entropy increases.  The similarity is lower at first when there are fewer relations, but this crosses over around epoch 3, which may indicate that as learning saturates the event relations in the environment, similarity falls more slowly. 
+
+```{r Figure3, echo=FALSE,out.width="100%", fig.cap="Varying the number of associative pairs in the environment. Entropy and similarity measures computed from the cognitive representation at different epochs of development for environmental networks with different numbers of associative relations used during environment construction.  Epochs are 200 training events long.",fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("EntropySimvariousassociations.1.pdf"))
+```
+
+# Removal of the context cue in the Rescorla-Wagner model
+
+The Rescorla-Wagner model contains a context cue that is present during all associative learning events (Ramscar et al., 2017; Rescorla & Wagner, 1972).  This means that all learning events contain the context cue in addition to the associative cue and target, incorporated into the model as a compound cue (see the online code). This has been criticized as sometimes creating odd behavior because cues can become positively associated with a target even if they never occur together (Miller, Barnet, & Grahame, 1995).  Removing this context cue, however, does not alter the pattern of results provided in the main manuscript. Figure \@ref(fig:Figure4) shows the results for entropy and similarity with the context cue removed. This uses environmental networks with 500 nodes, 2000 edges, and 200 learning events per epoch, and 10 repetitions of the entire simulation. 
+
+```{r Figure4, echo=FALSE, out.width="100%", fig.cap="Removal of the context cue. The results for entropy and similarity computed using Rescorla Wagner with the context cue removed.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("EntropySim1000.01to.1NoContext.pdf"))
+
+```
+# Adjusting the learning values in Rescorla-Wagner
+
+The learning values in the main text vary from $\beta = 0.01$ to $0.10$. Figure \@ref(fig:Figure5) shows the results for values ranging from $\beta=0.10$ to $1.0$. This shows that faster learning rates reduce entropy, but still show a rising entropy over repeated learning events. This is in fact an n-shaped function, as the main text showed that entropy increased with learning rate. Thus, learning rates up to about $0.1$ show the largest rise in entropy, but the rise is nonetheless found for all learning rates. Similarity scores are largely unaffected by learning rate, though here the network structure has a larger impact.  Scale-free networks have lower similarity scores than weighted Erdös-Renyi random graphs, but all show declining similarity values with increased learning events.  
+
+```{r Figure5, echo=FALSE, out.width="100%", fig.cap="Varying learning values. Entropy and similarity measures computed from the cognitive representation at different epochs of development for a variety of Beta values.",fig.show='hold',fig.align='center'}
+
+knitr::include_graphics(c("EntropySim1005002000200.01to1.pdf"))
+
+```
+
+
+# Alterning the number of learning events
+
+Figure \@ref(fig:Figure6) shows the outcomes across a range of learning events per epoch.  The results show that increasing learning per epoch increases overall entropy and reduces the similarity. The drop across epochs remains the same barring apparent floor and ceiling effects. More learning increases the entropy and reduces the similarity, whether it takes place within an epoch or over epochs. Here the environment is $n=500$ concepts with $2000$ pairs sampled for creating environmental associations. The results are the average of $10$ simulations  with $\beta=0.1$.
+
+```{r Figure6, echo=FALSE,out.width="100%", fig.cap="Varying the number of learning events per epoch. Entropy and similarity measures computed for a range of learning events per epoch.",fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("EntropySimvariousLearningEvents.1.pdf"))
+```
+
+# References
