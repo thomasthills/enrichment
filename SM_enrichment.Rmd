@@ -1,0 +1,241 @@
+---
+title: "Supplemental Material for Hills, T. T. **Cognitive network enrichment not degradation explains the aging mental lexicon and links fluid and crystallized intelligence**"
+date: "2024-04-11"
+
+bibliography      : /Users/thomashills/Dropbox/Life_3.0_db/Books/BNS_Hills/BNS_Github/enrichment_forPsychRev/enrichment.bib 
+
+floatsintext      : yes 
+linenumbers       : no 
+fig_caption       : yes
+
+classoption       : "man"
+toc               : false
+
+output:  bookdown::pdf_document2
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+
+```
+
+
+```{r packages, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+ library(igraph)
+ library(tidyverse)
+ library(kableExtra)
+ library(latex2exp)
+ library(moments)
+ library(Rmisc)
+ library(lsa)
+ library(plot.matrix)
+```
+
+
+```{r generalf}
+
+rank_based_communities_GN <- function(wordsInWorld, Associates, communes=1, a=0, probc=.5){
+  # defaults produce ER random graph
+  # get a ranking 
+  x <- 1:wordsInWorld
+  # randomly assign to communities (take first x)
+  nodcoms <- sample(rep(1:communes, ceiling(wordsInWorld/communes))[x])
+  pairs <- c()
+  for(i in 1:Associates){
+    firstNode <- sample(x, 1, prob = x^(-a)) 
+    predge <- x^(-a)*ifelse(nodcoms[x]==nodcoms[firstNode], probc, 1-probc)
+    secondNode <- sample(x[-firstNode], 1, prob = predge[-firstNode])
+    pairs <- rbind(pairs, c(firstNode, secondNode))
+  }
+  return(pairs)
+}
+
+# Rescorla Wagner function 
+
+rescorlaWagner <- function(vmat = vmat, cue, outcome, alpha=1, beta=.2) {
+  # cue can be compound: e.g., cue = c("A", "B")
+  # outcome can be compound: e.g., outcome = c("A", "B")
+  cuevalues <- matrix(vmat[cue, ], nrow = length(cue))
+  valueSums <- apply(cuevalues,2,sum )     # cumulative cue value
+  # lambda = 1 when present 0 when absent
+  lambda = as.numeric(rownames(vmat) %in% outcome)
+  pError <- lambda - valueSums     # prediction error = observed - expected
+  valueChange <- alpha * beta * pError # value change 
+  vmat[cue, ] <- t(t(vmat[cue, ]) + valueChange)                   # update value
+  return(vmat)
+}
+
+```
+
+The primary purpose of the Supplemental Material is to demonstrate that the results presented in the main text are robust to a wide variety of manipulations with respect to environment construction and learning. I have chosen representative examples which clearly demonstrate the key effect of these variations. The results are similar across environment types. The code available online allows further exploration of the other environments or assumptions.  All results are based on 100 simulations for a given set of parameters. This was more than sufficient to generate robust and reliable patterns in the data. 
+
+# Network size 
+
+ The size of the network is inconsequential to the qualitative patterns of results presented in the main manuscript. However, the network size is consequential to rate at which enrichment effects saturate.   Here I provide an example using the scale-free small world network with $M=5$ and $\gamma = 1$, with network sizes of $500$, $1000$, and $2000$. The weighted edge distribution in each environment is constructed by sampling $2000$ pairs of nodes as described in the main text.   This produces the results shown in Figure \@ref(fig:FigureSM1). 
+ 
+ The results show the rising of entropy and the falling of similarity judgment as before. However, we can also see that as the number of nodes increases this slows the rise of entropy and the fall of similarity. 
+ 
+Note: For those experimenting with the code, as the number of nodes increases environments with the same number of associations will produce sparser representations.  This reaches a computational boundary when the representation's giant component contains fewer than the $20$ pairs required for the similarity computation. For this reason, I only show the scale-free small-world here. But denser small-word and Erdös-Renyi random graphs produce the same relationship as the network size increases.
+
+
+```{r FigureSM1, echo=FALSE,out.width="100%", fig.cap="Adjusting the environment size. Entropy and similarity measures computed from the cognitive representation at different epochs of development for  various network sizes holding the number of sampled pairs constant. Epochs are 250 learning events each.",fig.show='hold',fig.align='center'}
+
+knitr::include_graphics(c("figureSM1.pdf"))
+
+```
+
+\pagebreak
+# Weighted density distribution in the environment
+
+Figure \@ref(fig:FigureSM2) shows how increasing the number of associative relations in the network influences entropy and similarity. The number of concepts (nodes) in the environment is fixed and the number of associative samples used in constructing the weighted edge distribution is increased. This uses the scale-free small world network with $M=5$ and $\gamma = 1$, with $500$ nodes and $2000$, $5000$, and $10000$ pairs sampled to construct the environment. As above, $\beta = .1$.
+
+The results show rising entropy and falling similarity.  Changes in the weighted edge distribution have a limited influence on these measures.  This is largely because the learning advantage for strongly weighted edges is only relatively amplified by increasing the number of associations. When a sufficient number of samples are already in place to establish this relative difference in the environment, then adding additional weights to edges has a limited effect on learning.  
+
+```{r FigureSM2, echo=FALSE,out.width="80%", fig.cap="Varying the distribution of weighted edges in the environmental network. Edges are sampled to create the environment network with $2000$, $5000$, or $10000$ samples, always using $500$ concept nodes.  Epochs are 250 training events long.",fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("FigureSM2_100.pdf"))
+```
+
+\pagebreak
+# Learning events
+
+Figure \@ref(fig:FigureSM3) varies the number of learning events. This uses the scale-free small world network with $M=5$ and $\gamma = 1$ and learning rate is set to $\beta = 0.1$.  The number of learning events per epoch varies from $250$, to $1000$, to $5000$. 
+
+The general pattern of rising entropy and falling similarity is preserved for all cases. However, as the amount of learning increases relative to a fixed environment size, maximum entropy and minimum similarity are reached more quickly.  This is consistent with the previous results showing that increasing the network size lowered the rate at which these values changed. This suggests a saturation effect, where with sufficient learning learners can maximize the available entropy, which in turn maximizes diffusion leading to lower similarity judgements. 
+
+```{r FigureSM3, echo=FALSE,out.width="100%", fig.cap="Entropy and similarity measures computed from the cognitive representation at different epochs of development for environmental networks with different numbers of learning events per epoch.",fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("FigureSM3_100.pdf"))
+```
+\pagebreak
+
+# Learning rates
+
+The learning values in the main text vary from $\beta = 0.01$ to $0.10$. Figure \@ref(fig:FigureSM4) shows the results for values ranging from $\beta=0.01$ to $1.0$. This uses the scale-free small world environment as above, with $M=5$ and $\gamma = 1$, and $250$ learning events per epoch. 
+
+The results show that entropy always rises and similarity always falls with increasing learning.  However, we can also see evidence of an inverted-U function, with the slowest rates of rising entropy and falling similarity occuring when learning is either very slow or very fast.  Intermediate values of learning (near $.5$) have the highest entropy and lowest similarity overall. 
+
+```{r FigureSM4, echo=FALSE, out.width="100%", fig.cap="Varying learning rates. Entropy and similarity measures computed from the cognitive representation at different epochs of development for a variety of $\\beta$ values.",fig.show='hold',fig.align='center'}
+
+knitr::include_graphics(c("FigureSM4_100.pdf"))
+
+```
+
+\pagebreak
+# Rescorla-Wagner context cue
+
+The Rescorla-Wagner model contains a context cue that is present during all associative learning events (Ramscar et al., 2017; Rescorla & Wagner, 1972).  This means that all learning events contain the context cue in addition to the associative cue and target. This is incorporated into the model as a compound cue (see the online code). This has been criticized as sometimes creating odd behavior because cues can become positively associated with a target even if they never occur together as a result of the context cue carrying residual positive and negative predictive values for various cues (Miller, Barnet, & Grahame, 1995).  Removing this context cue, however, does not alter the pattern of results provided in the main manuscript. Figure \@ref(fig:FigureSM5) shows the results for entropy and similarity with the context cue removed. This uses the scale-free small world environment as above, with $M=5$ and $\gamma = 1$, and $250$ learning events per epoch.  The results show close overlap between learning with and without the context cue.  
+
+```{r FigureSM5, echo=FALSE, out.width="100%", fig.cap="Removal of the context cue. The results for entropy and similarity computed using Rescorla Wagner with the context cue present or removed.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("FigureSM5_100.pdf"))
+
+```
+
+\pagebreak
+# Directed versus undirected representations 
+
+The main text uses an undirected representation network. This occurs because the learning algorithm always assigns the same item from the pair as the cue, and treats the edge weight as undirected. Another approach is to assign the cue and target at random and produce a directed network.  Here I show that the directed and undirected representation networks produce the same qualitative pattern. This uses the scale-free small world environment as above, with $M=5$ and $\gamma = 1$, and $250$ learning events per epoch, with $\beta = .1$. 
+
+Figure \@ref(fig:FigureSM6) shows that the difference between undirected and directed networks is similar to the pattern for increasing the network size or altering the number of associations. A directed network requires more learning to encode edges, which reduces the rate at which entropy rises early in development. Undirected edges lead to faster declines in similarity as they lead activation to diffuse away in the network more quickly than a corresponding directed network. Again, this appears to be a consequence of how quickly learning saturates the number of possible to-be-learned associative edges in the network, which will happen more quickly for undirected than directed networks. 
+
+
+```{r FigureSM6, echo=FALSE, out.width="100%", fig.cap="Directed and undirected representation networks. The results for entropy and similarity computed using Rescorla Wagner with the context cue present or removed.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("FigureSM6_100.pdf"))
+
+```
+
+\pagebreak
+# Negative edges
+
+Negative edges are produced in the original Rescorla-Wagner configuration when the context cue takes on positive predictive values with items it occurs with (in combination with other cues) and then imparts some of this positive value to other cues as negative predictive strengths. This happens because the positive context value predicts the occurrence of an outcome that does not appear (in the new context), and the new cue becomes negatively associated with the outcome it does not appear with.  More intuitively, if AB predicts X and AC predicts Y (but not X) then C must negatively predict X to account for the prior observation that A predicts X.  This is a standard outcome of prediction error models and more commonly associated with inhibition in classical conditioning. 
+
+As @rescorla1988pavlovian points out, this learning of dis-associative information is required to account for the observation that base rates of the unconditioned stimulus matter to learning. We do not only learn on occasions when things co-occur.  We also learn when things do not co-occur. Ramscar et al. (2017) use this feature to account for the observation that older adults primarily have difficulty learning new paired associates that they have previously learned over a lifetime of experience are not associated.
+
+Negative association strengths are a common feature of prediction error models and the Rescorla-Wagner model in particular, so they are included in the simulation in the main text. However, the enrichment effects in the main article do not rely on negative edges. As demonstrated in Figure SM5, removing the context cue and the negative edges it produces does not affect the enrichment effects. 
+
+Nonetheless, it may be useful to consider the number of negative edges and their strengths.  This information is provided in Table   \@ref(tab:statsForReps). This table is similar to the one shown in the main text but also includes the number of negative edges (Neg. edges) and the average node strength including negative edges (Strength w/ neg). There are many more negative edge weights than positive edge weights. This is consistent with the sparse environmental network in which most things predict the absence of other things. The negative edge weights are sufficiently small that including them in the computation of node strength has only a marginal influence on the age-related pattern in the results.  
+
+```{r statsForReps}
+# code is main manuscript code, here I am just adding the negative edges
+load("datout3_1000")
+#### Table 1 ####
+kable(datout3,row.names=FALSE, booktabs = T, escape = FALSE, caption = "Statistics for the environments and growing representations.", col.names = c("Type", "Measures", "Environment", "1", "2", "3", "4"))  %>% 
+  column_spec(4, border_left = TRUE)   %>%
+  kable_styling(font_size = 7) %>% 
+kable_classic(full_width = F, html_font = "Cambria")   %>% 
+  add_header_above(c(" " = 3, "Epoch" = 4), bold = TRUE) %>%
+  row_spec(9,extra_css = "border-bottom: 1px solid;") %>% 
+  row_spec(18,extra_css = "border-bottom: 1px solid;") %>% 
+  row_spec(27,extra_css = "border-bottom: 1px solid;") %>% 
+  collapse_rows(columns = 1) %>% 
+  footnote(general = "Measures are averaged over 1000 environments and cognitive representations learned from those environments over four epochs of 250 learning events each. Nodes indicates the total number of non-isolates in the environment or cognitive representation. Strength is the sum of the edge weights. Degree is the number of associations. ASPL is the average shortest path length. C is the mean local clustering coefficient. M is the modularity indicating community coherence. Neg. edges is the number of negative edges. Strength w/ neg is the average strength including negative edges.", threeparttable = TRUE) 
+
+```
+
+\pagebreak
+# Free association parameter exploration
+
+The parameter exploration varies the number of participants, cues, and threshold values in the free association network construction. Each environment is constructed with 500 concept nodes and 2000 pairs sampled to produce edge weights.  Learning takes place over 4 epochs of 250 learning events each, with $\beta = .1$. Each cell is the outcome of 100 simulations starting with the randomly generated environment. 
+
+## Enrichment 
+
+Cells represent the difference between Epoch 4 and Epoch 1, with positive values indicating rising trends.
+
+```{r FigureSM7, echo=FALSE, out.width="90%", fig.cap="Weighted Erdös-Renyi random graph environment. Enrichment parameter exploration for free association network.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("Figure71Sims100.pdf"))
+
+```
+
+```{r FigureSM8, echo=FALSE, out.width="90%", fig.cap="Weighted scale-free environment. Enrichment parameter exploration for free association network.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("Figure72Sims100.pdf"))
+
+```
+
+```{r FigureSM9, echo=FALSE, out.width="90%", fig.cap="Weighted small-world enviroment. Enrichment parameter exploration for free association network.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("Figure73Sims100.pdf"))
+
+```
+
+```{r FigureSM10, echo=FALSE, out.width="90%", fig.cap="Weighted scale-free small-world environment. Enrichment parameter exploration for free association network.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("Figure74Sims100.pdf"))
+
+```
+\pagebreak
+## Degradation
+
+Cells represent the difference between $30\%$ degradation and $0\%$ degradation starting from the outcome of epoch $4$. Positive values indicate rising trends. Networks are as for the enrichment parameter exploration. Each cell is the outcome of $100$ simulations starting with the randomly generated environment.
+
+```{r FigureSM11, echo=FALSE, out.width="90%", fig.cap="Degradation parameter exploration for free association network with the weighted Erdös-Renyi random graph environment.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("FigureSM81Sims100.pdf"))
+
+```
+
+```{r FigureSM12, echo=FALSE, out.width="90%", fig.cap="Degradation parameter exploration for free association network with the weighted scale-free environment.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("FigureSM82Sims100.pdf"))
+
+```
+
+```{r FigureSM13, echo=FALSE, out.width="90%", fig.cap="Degradation parameter exploration for free association network with the weighted small-world environment.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("FigureSM83Sims100.pdf"))
+
+```
+
+```{r FigureSM14, echo=FALSE, out.width="90%", fig.cap="Degradation parameter exploration for free association network with the weighted scale-free small-world environment.", fig.show='hold', fig.align='center'}
+
+knitr::include_graphics(c("FigureSM84Sims100.pdf"))
+
+```
+
+\newpage
+# References

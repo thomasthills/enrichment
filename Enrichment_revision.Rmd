@@ -1,0 +1,376 @@
+---
+title             : "Cognitive network enrichment not degradation explains the aging mental lexicon and links fluid and crystallized intelligence"
+
+shorttitle        : "COGNITIVE NETWORK ENRICHMENT"
+
+author: 
+  - name          : "Thomas T. Hills"
+    affiliation   : "1"
+    corresponding : yes    # Define only one corresponding author
+    address       : "Gibbet Hill Road, Coventry, CV4 7AL, UK"
+    email         : "t.t.hills@warwick.ac.uk"
+
+affiliation:
+  - id            : "1"
+    institution   : "University of Warwick"
+
+authornote: |
+  This work was supported by the Alan Turing Institute and Royal Society Wolfson Research Merit Award WM160074. The R code to reproduce the environments, the learning of cognitive representations, the behavior, and all analyses and figures in the manuscript and Supplementary Material are available at https://github.com/thomasthills/enrichment. The concept for this manuscript was initially proposed as a network example in Hills (2025) textbook. This research was not preregistered. Thanks to members of the Warwick Psychology Department and Warwick Business School for helpful comments. 
+
+abstract: | 
+ Cognition is a complex system of interacting components. Late-life cognitive decline is often explained as a degradation of the interconnectivity among these components.  Evidence from the aging mental lexicon corroborates this interpretation as older adults produce higher entropy responses in free association tasks, appear to have sparser free association networks, and judge objects to be less similar to one another than younger adults.  Here, I  demonstrate that all of these effects are produced by a model of cognitive network enrichment, which treats aging as an extension of lifelong learning. By increasing interconnectivity, learning increases competition for activation among potential targets, increasing entropy and reducing targeted activation. The impact of network enrichment is demonstrated using a general prediction error model (Rescorla-Wagner) which learns and enriches a cognitive network representation following lifelong experience with a network of associations in the environment. Sampling from the learned representation to produce behavior reproduces the above effects. A qualitative model comparison shows that various models of degradation fail to capture the above results for entropy and similarity. Both enriched and degraded representations can produce sparsening free association networks, depending on the specific methodological details of data collection. This underscores the general problem of inferring representation from behavior without considering process.  Further, extending cognitive network enrichment more broadly provides a lifelong developmental pathway for over-attention to irrelevant stimuli and cognitive slowing---increasing interference, taxing resource limitations, and reducing targeted activation---offering a common cause for rising crystallized intelligence and declining fluid intelligence.
+  
+keywords          : "cognitive aging; Rescorla Wagner; network science; free associations; fluid intelligence; crystallized intelligence"
+
+bibliography      : /Users/thomashills/Dropbox/Life_3.0_db/Books/BNS_Hills/BNS_Github/enrichment_forPsychRev/enrichment.bib 
+
+floatsintext      : yes 
+linenumbers       : yes 
+draft             : no
+mask              : no
+
+figurelist        : no
+tablelist         : no
+footnotelist      : no
+figsintext        : yes
+
+classoption       : "man"
+output            : papaja::apa6_pdf 
+always_allow_html: true
+header-includes:
+   - \usepackage{caption}
+   - \captionsetup[figure]{font=small}
+---
+
+```{r setup, include = FALSE}
+# output            : papaja::apa6_pdf
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library("papaja")
+#r_refs("enrichment.bib")
+# Seed for random number generation
+set.seed(42)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+ library(DiagrammeR)
+# library(tinytex)
+ library(igraph)
+# library(gridExtra)
+# library(grid)
+ library(tidyverse)
+ library(kableExtra)
+# library(igraphdata)
+# library(kableExtra)
+ library(latex2exp)
+library(moments)
+# library(scales)
+# library(cowplot)
+# library(nlme)
+# library(gridGraphics)
+# library(fitdistrplus)
+# library(RColorBrewer)
+# library(BayesFactor)
+# library(ggpubr)
+# library(stargazer)
+ library(Rmisc)
+ library(lsa)
+# library(corrplot)
+# library(ggraph)
+# library(network)
+# library(sna)
+```
+
+
+Cognitive aging is characterized by two distinct and well-documented patterns. As individuals age, measures of working memory, processing speed, and long-term memory show performance decrements from approximately age 20, while at the same time, measures of vocabulary and other kinds of general knowledge continue to increase [@Salthouse:2004is;@salthouse2019trajectories; @park2009adaptive;@brysbaert2016many;@verhaeghen2003aging;@keuleers2015word;@Troyer:1997tt;@burke2004aging;@hartshorne2015does; @shelton2010relationships]. Though much debate surrounds the general classification of these abilities, their divergence corresponds to a classic division of intelligence between the ability to solve novel problems in a fast and accurate way, called *fluid intelligence*, and the quantity of one's prior knowledge, called *crystallized intelligence* [@cattell1987intelligence;@horn1989models].  This division also characteristically distinguishes the old from the young.  
+
+Longitudinal studies find that healthy declines in fluid intelligence are predominantly correlated with rising crystallized intelligence [@tucker2022strong]. Might this divergence share a common cause? As described below, many researchers have postulated such a relationship and the weight of the evidence is growing. However, a general model demonstrating this relationship as a consequence of life-experience remains to be formally proposed. The model of cognitive network enrichment that I propose integrates well-established mechanisms of learning and memory across a lifetime of experience. This integration involves modeling the environment, memory encoding as a result of experience with that environment, and the behavior that arises from that encoding.  The results of this developmental process demonstrate a clear interaction: enriching one's cognitive representation increases competition between associates during retrieval and produces a relative decline in activation between any two concepts chosen at random. 
+
+These results are robust to a wide variety of environments and learning processes. 
+To prepare the reader, the model I propose is not a model of working memory---models demonstrating the influence of interference and competition in working memory already exist [e.g., @oberauer2016limits;@oberauer2024interference] and older adults suffer more interference from prior knowledge [e.g., @amer2022cluttered].  Rather, cognitive network enrichment demonstrates how an enriched cognitive representation enhances competition for access to working memory and dilutes retrieval whenever prior knowledge comes into play. These results offer an enrichment-based explanation for aging effects commonly associated with memory degradation, which, as I show below, degradation does not produce. Before demonstrating how these effects arise, I first highlight the primary theoretical accounts of aging this work addresses and then describe the key behavioral effects I hope to explain. 
+
+
+# Degradation or enrichment
+
+Cognitive aging is a rich process with evidence supporting a wide range of phenomenology and theoretical explanations [@reuter2008neurocognitive;@koen2019neural;@spreng2021exploration;@grady2006age;@Troyer:1997tt;@mata2007aging]. Much of this work is interpreted as supporting either degradation or enrichment. 
+
+One prominent degradation-based explanation is the common cause theory of age-related cognitive decline, which argues that biological aging in the brain is the source of processing speed deficits [@deary2009age;@baltes1997emergence]. The supposition is that aging is a general process of degradation, in which factors like oxidative stress and telomere shortening damage the physiological architecture underpinning cognitive performance. @salthouse2013mechanisms describes some potential mechanisms as follows: "a slower speed of transmission along single (e.g., loss of myelination) or multiple (e.g., loss of functional cells dictating circuitous linkages) pathways, or. . . delayed propagation at the connections between neural units (e.g., impairment in functioning of neurotransmitters, reduced synchronization of activation patterns)" (p. 116). Consistent with this, percent volume of grey and white-matter declines in late life [@giorgio2010age; @ge2002age;@resnick2003longitudinal] as does cortical thickness [@lemaitre2012normal], even if cell death is not characteristic of healthy aging [@burke2006neural].  
+
+Evidence of apparent degradation extends to studies of brain-wide integration. For example, measures of the neural connectome--—the wiring diagram of the brain--—indicate declining local community structure and a reduction in functional segregation [@damoiseaux2017effects; @cao2014topological; @riedel2022trajectory;@ferreira2016aging].  This dedifferentiation is marked by "reduced within-network and increased between-network functional connectivity" [@deery2023older]. Evidence that this dedifferentiation is caused by degradation is however mixed.  Across studies, brain atrophy frequently explains limited variance in functional desegregation and the two are often statistically uncorrelated [@ferreira2016aging; @geerligs2015brain]. The limited nature of this relationship between degradation and decline is found elsewhere as well, even in more direct studies.  Posthumous evidence of Alzheimer’s and other neurodegenerative and cerebrovascular diseases account for around 40% of declines in fluid intelligence (e.g., the Mini-Mental State Examination), leaving substantial variance unexplained even in unhealthy individuals [@boyle2021degree]. 
+
+<!--   By these accounts, declines in fluid intelligence are a natural consequence of an enrichment of prior knowledge. This is proposed to arise either because learning strengthens prior associations which, when violated by new experiences, become harder to overcome [e.g., @ramscar2014myth] or because prior experiences 'clutter' knowledge in a way that limits the speed with which old knowledge can be accessed [@buchler2007modeling;@amer2022cluttered]. -->
+
+<!-- There are many cognitive and brain related changes that are consistent with both degradation and enrichment accounts. For example, brain activity changes across the lifespan in relation to encoding and task processing, showing increased contributions from the default-mode network [@grady2006age]. This phenomenology is also associated with decreased modularity within brain regions combined with larger interconnectivity between regions in later life [@geerligs2015brain; @spreng2019shifting]. Spreng and Turner (2019) argue that these changes underpin a lifelong transition from exploration via fluid intelligence to exploitation focused on past knowledge [see also @spreng2021exploration]. -->
+
+An alternative explanation for age-related cognitive decline proposes a causal interdependence between crystallized and fluid intelligence. More specifically, learning is proposed to increase crystallized intelligence but impair fluid intelligence. @buchler2007modeling showed using simulations that if one assumes that the number of relations between concepts increases as a result of learning over the lifespan this would directly lead to more diffuse activation between those concepts. As knowledge increases, activation is more broadly distributed. Similarly, @ramscar2014myth demonstrated how prior learning explains age-related declines in paired-associate learning. They based their work on @desrosiers1986paired, which found that older adults perform most poorly on word pairs that are least consistent with prior experience. The difficulty of learning unrelated word pairs is entirely predictable from the co-occurrence frequency of those pairs in prior experience [see also @ramscar2013learning]. Training a Rescorla-Wagner model on typical patterns of word co-occurrences leads unrelated word pairs to become negatively associated over time, impairing their future learning. This negative association, formally called conditioned inhibition, is a predictable but often understated property of Pavlovian conditioning [@rescorla1988pavlovian]. 
+
+Still more recent work has argued for a much broader influence of age-related mental "clutter," which may arise from representational changes across the lifespan as well as changes in cognitive control at the time of encoding or retrieval [@amer2022cluttered;@weeks2020holding]. According to this account, over-attending to a diversity of stimuli alongside an inability to filter out past experience can lead older adults to attend to too much information [e.g., @lustig2001working]. Too much information creates processing difficulties, further exacerbated when that information is irrelevant.  
+
+One source of this informational clutter is life experience. @li2022diachronic found that older individuals spent more time processing words that had changed their meaning during their lifetime, a delay not found in younger individuals who were too young to have experienced the change. Similarly, @hoffman2019divergent used a verbal comprehension test involving synonym identification and found that the performance of older adults was most poor when the questions contained relatively strong semantic distractors, a relationship not found for younger individuals. Numerous studies like these show that prior knowledge influences older adults more strongly than younger adults [see @spreng2019shifting], and this may be because there is more of it. Though one could argue that some of these results are due to putative age-related deficits in cognitive control, the work from @li2022diachronic does not support that argument---older adults are similar to younger adults on words that have not changed over their lifetime. 
+
+The different accounts described above can be broadly categorized as focusing on degradation or enrichment, and the evidence for both is compelling.  To what extent we subscribe to one explanation over another should largely depend on the plausibility of their mechanisms and the sufficiency of what they explain. To my knowledge, degradation accounts have not provided formal computational mechanisms for how degradation might lead to the observed age-related changes in healthy individuals. Presumably such mechanisms could be developed and would offer useful predictions. For example, @BorgeHolthoefer:2011bg developed a model of degradation for hyper-priming in Alzheimer's patients, but similar models for healthy aging are still needed [see also @stella2020multiplex].  A key challenge for degradation models is that they would need to explain how degradation alters fluid intelligence but not crystallized intelligence. I offer two such models that degrade associations between concepts without altering the persistence of those concepts. Neither of them capture the behavioral effects I describe below.
+
+On the other hand, existing enrichment models have either assumed more connectivity [e.g., @buchler2007modeling] or evaluated how differential experience to word pairs impairs future learning [e.g., @ramscar2014myth]. As noted by @wulff2019new, what is lacking is a full model of representational development and behavior across the adult lifespan. The cognitive network enrichment account I propose here is one such model based solely on extending the natural learning process. It represents a computational prediction for what we should expect if late-life were a continuation of early life. In addition, this enrichment account also helps identify what remains to be explained by degradation and provides a platform for testing degradation's impacts. 
+
+To evaluate these models, I focus on two empirical observations made over the last decade. These tap into different aspects fundamental to cognitive retrieval: entropy in free associations and judgments of similarity. These address how the mind accesses knowledge in divergent and convergent ways and offer tasks for directly evaluating how structure and process influence behavior.  In explaining how enrichment alone alters the mental lexicon and gives rise to the empirical results associated with the above phenomena, we can see how lifelong experience influences divergent and convergent features of cognitive processing, two fundamental components of fluid intelligence.
+
+# The aging mental lexicon: rising entropy and falling similarity
+
+The fate of the enrichment and degradation accounts rests entirely on their ability to accurately describe age-related change in the structure of cognitive representations. Because we do not have direct access to these representations, we must infer them from behavior. Numerous studies have attempted to do this. @dubossarsky2017quantifying examined data from approximately 8000 people, ranging in age from roughly 10 to 70, who provided three free associates to each of 420 cue words. Data were aggregated within age-groups to evaluate changes in associations across the lifespan.  From approximately age 30, the entropy of associations increased---associates become less predictable with increasing age. Though this rising entropy could be a consequence of aggregation across a more diverse older population, @jeong2024cogsci showed that this was a property of individuals. Older individuals produce successive associates in response to a single cue that are less similar to one another than do younger individuals.  
+
+@dubossarsky2017quantifying also produced networks among the 420 cue words, with weighted edges connecting cues more strongly when they produced more similar associations. Older networks were found to be more sparsely connected. They had a lower average degree (number of associations per word) higher average shortest path length (greater path distance between associates), and lower average clustering coefficient (the proportion of a concept's neighbors that are themselves connected). Both @zortea2014graph and @wulff2022using identified similar patterns of declining connectivity with varying numbers of participants and cues. @jeong2024cogsci further corroborated these results for three different languages (English, Dutch, and Spanish). 
+
+These changes in the aging lexicon are also consistent with the way older and younger adults search memory. Using a semantic fluency task (e.g., "name all the animals you can"), @wulff2022structural constructed lexical networks by connecting animal names that appeared nearby one another in the fluency lists of older and younger adults. Older adults' lexical networks were less well-connected, similar to the patterns for free associations described above. This poor connectivity was also observed by fitting a memory search model to semantic fluency data from younger and older adults. The model found that, compared with younger adults, older adults produced strings of animal names that were less well predicted by semantic similarity between names [@hills2013mechanisms]. Finally, @cosgrove2021quantifying used percolation analysis to investigate the resilience of networks built from semantic fluency data from older and younger individuals. By artificially removing connections between words, they found that older adult networks were less resilient to decay than younger adult networks. 
+
+Similarity judgments show a similar divergence: Older adults tend to rate things as less similar to one another than younger adults. @wulff2022structural demonstrated this by asking younger and older adults to judge the similarity of 63 common animals, making approximately 2000 paired comparisons over a period of several weeks using a tablet participants took to their homes. Using a similar task, @cosgrove2023age found a corresponding decline in similarity judgments with age. They also found that older individual networks produced from similarity judgments were less well connected, with lower clustering coefficients and lower efficiency (a measure of inverse path length). Foreshadowing the results of cognitive network enrichment, @cosgrove2023age also found that larger vocabularies were associated with lower clustering coefficients and global efficiency, suggesting that cognitive enrichment may play a role in poorer connectivity.  
+
+In sum, with age adults become less predictable in free associations tasks (higher entropy), produce judgments of lower similarity in pairwise comparisons, and appear to have a sparsening free association network (lower degree, lower clustering coefficient, and higher average shortest path length). These results are intuitively consistent with a cognitive representation that suffers from degradation. One can easily imagine that a sparseness in output reflects a sparseness in the underlying representation, which is caused by degradation in the underlying biological architecture. However, as I show below, this intuition is wrong. It is wrong because it conflates the outputs of a retrieval process with the structure of the underlying representation.  When we separate the behavior from the representation and the processes that give rise to them we find that extending standard learning and retrieval models across the lifespan predicts all of the above effects.
+ 
+# Cognitive Network Enrichment 
+
+Cognitive network enrichment takes its inspiration from complex systems, in which behavior is the emergent outcome of self-organizing and distributed processes acting across interconnected components [@Simon1977;@strogatz2001exploring]. In cognitive science, as in other complex systems, this is often manifested in how network structure shapes processing and subsequent behavior [@siew2019cognitive;@hillsBNS2025;@baronchelli2013networks]. The networks commonly used to characterize the mental lexicon are themselves constructed from behavioral outputs (e.g., free associations tasks). They are therefore underpinned by both structure and process. As a consequence, to understand how the mental lexicon ages, it is essential to carefully consider the processes by which the lexicon is formed and accessed. 
+
+The cognitive network enrichment account envisions lifelong behavior as the ongoing outcome of learning from the environment to develop a cognitive representation, and then applying processes to that representation to generate behavior. This enrichment account does not assume that the representation is a perfect copy of the environment, nor that behavior is a perfect copy of the representation. Each requires processes to transform one into the other. This approach follows calls from cognitive research community to model not only the representation but the processes that access that representation to generate behavior [@estes1975some;@johns2023scalable;@jones2015hidden;@castro2020contributions;@hills2022mind]
+
+Formally, the cognitive network enrichment account involves modeling three separate components:
+
+1.  *Environment*: The environment presents the set of all possible associations that could be learned.
+2.  *Representation*: The representation is the outcome of learning associations from the environment, with learning continuing to enrich the representation across the lifespan.
+3.  *Behavior*: Behavior is guided by retrieving information from the cognitive representation appropriate to the environmental context. This generates free-associations, memory search, similarity judgments, and so on.
+
+To make this relationship clear, these stages are presented in Figure \@ref(fig:Figure1) and each are explained in detail below. Though there is nothing controversial about this framing, it is visualized here because, as @hills2022mind and @jones2015hidden have noted, it is easy to conflate the behavior with the representation or the representation with the environment. The failure to separate these components limits our intuition for understanding cognition as an outcome of both representation and process. Free associations should not be confused with a copy of the underlying representation. Similarity judgments should not be confused with indicating the distance between objects in memory. In both cases, they are the output of applying a process to a representation. Even when the processes remain unchanged, changes in the structure can influence the output in misleading ways, and vice versa [@hillsBNS2025;@hills2024entropy]. To provide a simple analogy: That needles are harder to find in bigger haystacks does not mean that there are fewer needles. Nor does it mean that we are less capable of searching for them. 
+
+
+```{r Figure1, fig.cap="The cognitive network enrichment account models the process of translating experience with the environment into behavior. Arrows represent processes that translate one domain into another.  Learning (e.g., Rescorla-Wagner) translates experience with the environment into a cognitive representation. Additional cognitive processes (e.g., spreading activation) translate the representation into behavior."}
+library(DiagrammeR)
+
+grViz(diagram = "digraph flowchart {
+  graph[rankdir=LR]
+  node [fontname = arial, shape = rectangle, cex = 1, fixedsize=TRUE, width=2.3]
+  tab1 [label = '@@1']
+  tab2 [label = '@@2']
+  tab3 [label = '@@3']
+  
+  tab1 -> tab2 -> tab3;
+}
+  
+  [1]: 'Environment'
+  [2]: 'Representation'    
+  [3]: 'Behavior'    
+  ")
+```
+
+## Environment
+
+The environment is represented as a network of concepts (e.g., nodes) connected by weighted edges (links). Edges represent associations that can be learned and their weight indicates the intensity of the association. This follows the basic idea that things in the world are related to one another to varying degrees and in experiencing the world we learn those relationships. This applies to language, such as co-locations of words, but it applies equally well to any set of entities in the world about which things can be learned. I refer to these things as concepts to reflect their generality.
+
+The enrichment account is not dependent on any particular environment structure. To demonstrate this, I present four different network types: Erdös-Renyi random graphs, scale-free networks, small-world networks, and scale-free small-world networks. Erdös-Renyi random graphs are a well-understood and useful benchmark, with edges placed between nodes selected uniformly and at random [@erdos1959]. Scale-free networks reflect the long-tailed rich-get-richer phenomenology common to many real-world structures such as scientific collaboration networks, the world wide web, and semantic networks [@goh2001universal;@Steyvers2005wx;@kello2010ga;@johns2010evaluating]. Small-world networks reflect local clustering combined with short path lengths, which are also common features of semantic networks [@Steyvers2005wx;@dedyne2015;@kovacs2021networks;@cancho2001small;@de2008word]. 
+
+The standard versions of the above network types are often unweighted. To reflect the differential learnability of associations, I develop a rank-based framework which produces weighted random networks based on each of the above network types. This method is a variation of a fitness-based network model that starts with all nodes present and adds edges over time by choosing nodes according to a specific probability distribution [@hillsBNS2025;@menczer2020first]. Each concept is assigned a rank, $r$, from 1 to the number of concepts, $n$. Concepts are randomly assigned to $M$ communities. A concept, $i$, is sampled with probability $P_i \propto r_i^{-\gamma}$. A node's probability of selection is analogous to the frequency with which the concept is encountered. Then a second concept is chosen with probability $P_j \propto r_j^{-\gamma} \left[ p_c \delta_{c_{i},c_{j}} + (1 - p_c)(1 - \delta_{c_{i},c_{j}}) \right]$, where $\delta_{c_{i},c_{j}}$ is the Kronecker delta function equal to $1$ when both nodes are in the same community, $c_i=c_j$, and otherwise $0$. Preference for connecting to nodes in the same community is denoted by $p_c > 0.5$. After each sampling, $1$ is added to the edge weight between $i$ and $j$. I explain each component further below.
+
+When $M=1$ all nodes are in the same community and sampling reduces to $P_i \propto r_{i}^{-\gamma}$ for both nodes.  When $M=1$ and $\gamma=0$ the resulting network is a weighted Erdös-Renyi random graph, in which all node pairs have an equal chance of increasing their edge weight. When the community size $M$ is greater than $1$, this adapts the approach for developing multi-community networks described by @girvan2002community: Edges within communities are more likely than edges between communities, with probability $p_c$ and $1-p_c$, respectively. When $M > 1$ and $\gamma=0$, the network is a weighted approximation of the community formation model provided by @girvan2002community. As $\gamma$ grows larger than 0 this approaches a scale-free distribution and increases the probability of selection of nodes of smaller $r$.  Scale-free distributions are variable in practice and variously defined [@broido2019scale]. In the present formulation, $\gamma$ is set to $1$ to prevent the over-production of isolates with high $r$. 
+
+<!-- How many concepts and relationships should be in the environment? Words do not represent all concepts---which are not fixed in any case---but they provide a useful proxy. @brysbaert2016many investigate a number of approaches to evaluating vocabulary size and produced estimates ranging between roughly 10,000 and 200,000 "words", depending on how "words" are defined. Concepts, which might be closer to word families, which can be combined to form words (e.g., 'non'+'absorb'+'ant'), are at the lower end.  Based on a vocabulary sample of their own, @brysbaert2016many find vocabulary size increases across the lifespan. They further estimate that people may experience millions to billions of word tokens per year encompassing roughly 100,000 to 500,000 word types. The number of relationships that people experience is harder to estimate, as it depends both on the environment and people's ability to recognize them. In practice, humans report only a subset of all potential associations [@nelson2004university;@de2019small]. For example, the number of associations people reported between the approximately 12,000 cues provided in @de2019small is $~0.15 \%$ of the approximately 72 million possible associations. These are unlikely to represent all relationships in the environment or even in their cognitive representation. For example, people do not provide "eyes" as an associate of "koala", though most people probably see koalas with eyes about as often as they see koalas. -->
+
+Our goal here is not to replicate the exact nature of experience, which can differ dramatically even among young children [@hart1995], but to demonstrate that the effects of enrichment produce predictable outcomes on behavior across a broad range of environments. To demonstrate that, the Supplementary Material shows that the qualitative pattern of results presented here is not altered by substantially increasing or decreasing the number of concepts or associations sampled to construct the environment.
+
+For the purposes of computational tractability and to demonstrate learning towards network saturation, the environments each have $500$ concepts. From these concepts, $2000$ pairs of concepts are sampled with replacement to form the weighted relationships between them, with the weight corresponding to the number of times the pair is chosen across the $2000$ samples. The relationships in the environmental network are therefore represented by weighted and undirected edges. 
+
+Figure \@ref(fig:Figure2) provides an example of the four environmental network types and for each network the distribution of its node strengths (the sum of each node's edge weights) and degree. This further corroborates the power-law nature of the scale-free networks for both degree and strength. It also shows that small-world networks share similar strength distributions with their corresponding non-small-world counterparts.
+
+```{r Figure2,fig.cap="The structure of the environment from which learning takes place. Four weighted network types are shown:  An Erdös-Renyi random graph ($\\gamma=0$ and $M=1$), a small-world network ($\\gamma=0$, $M=5$, and $p_c=.96$), a scale-free network ($\\gamma=1$ and $M=1$), and a scale-free small-world ($\\gamma=1$, $M=5$, and $p_c=.96$). Each network has 500 concepts (nodes) and the weighted edges between them are the result of repeatedly sampling 2000 pairs of nodes and adding 1 to the edge weight between the pairs each time as described in the main text.", eval = TRUE, fig.height=5.5, fig.width=5}
+knitr::include_graphics(c("Figure2_1.pdf"))
+``` 
+
+
+## Representation
+
+Cognitive representations are built by sampling from and then learning about relationships in the environment. For learning, I use the prediction error framework set out in the Rescorla-Wagner model [@rescorla1972theory]. The choice of the Rescorla-Wagner model follows the substantial evidence for learning as a process of minimizing prediction error, which is a fundamental assumption among models of reinforcement learning [@sutton2018reinforcement; @dayan2005theoretical; @mcclelland1981interactive; @hoppe2022exploration]. The Rescorla-Wagner model captures this phenomenology---including associative learning, blocking, inhibition, and extinction---and it is a model on which many subsequent models have been based [e.g., @sutton1981toward]. Though it is not without limitations [@yau2023rescorla;@miller1995assessment], these limitations are largely irrelevant here and the Supplementary Material shows that removing one point of controversy (the context cue) does not alter the results. I therefore use the model to capture the generic prediction-error process inherent in the Rescorla-Wagner design and in recognition of its predictive utility [@soto2023rescorla; @roesch2012surprise;@trimmer2012does].
+
+Formally, the Rescorla-Wagner model minimizes the prediction error between the values of an observed outcome, $j$, and a cue predictive of that outcome, $i$. The value of the outcome is $\lambda_j$ and the value for that outcome as predicted by the cue is $V_{i \rightarrow j}$. The prediction error is the difference between them, $(\lambda_j-V_{i \rightarrow j})$, and it is minimized following each learning event according to the following rule:
+
+$$
+\Delta V_{i \rightarrow j} = \alpha_i \beta_j (\lambda_{j} - V_{i \rightarrow j})
+$$
+
+The parameter $\alpha_i$ corresponds to cue salience (some cues are easier to learn about than others) and $\beta_j$ to the learning rate for outcomes (some outcomes are easier to learn about than others). Both $\alpha$ and $\beta$ values are confined to values between $0$ and $1$. After learning at time $t$, the updated cue value is
+
+$$
+V_{i \rightarrow j, t+1} = V_{i \rightarrow j, t} + \Delta V_{i \rightarrow j, t}
+$$
+
+Thus, with repeated experience, $V_{i \rightarrow j}$ will approach the observed value $\lambda_j$. 
+
+The cognitive representation is formed by applying the Rescorla-Wagner model to the environment in the following way. Each learning event randomly samples a relationship (i.e., edge) from the environment in proportion to its weight (the number of times it was sampled during the environment's construction). Of the two concepts associated with the relationship, one is always assigned as the cue and the other as the outcome. The representation is then updated according to the Rescorla-Wagner model, and the learned association is taken to represent an undirected weight of association. The Supplementary Material shows that directed networks produce the same qualitative patterns as shown below. 
+
+We let all outcomes be equivalent and associated  with $\alpha=1$ and $\lambda=1$. To demonstrate that the qualitative results are not dependent on the precise learning values, $\beta$ is varied from $.01$ to $.1$ here, and over its entire range in the Supplementary Material, consistently reproducing the pattern described here. Since $\alpha$ and $\beta$ are a product and not assigned to individual concepts, changing $\beta$ is equivalent to changing the product of the two.  
+
+To simulate development, learning occurs over 1000 learning trials. This is split into 4 epochs with 250 learning trials each, allowing us to track the developmental pattern across successive ages.  The precise number of learning trials per epoch is unrelated to the qualitative pattern of results (see Supplementary Materials). For the analyses that follow, negative edges are removed as they have no intuitive interpretation for entropy, similarity, or free associations. Additional discussion of negative edges and their irrelevance (demonstrated by removing the context cue which creates them) can be found in the Supplementary Material.
+
+Figure \@ref(fig:Figure3) provides an example of learning representations over the four epochs for a scale-free small-world environment with $\beta=.01$.  This moves from sparse connectivity on the left, to highly interconnected “hairballs” on the right, a pattern common to all environments.  Table \@ref(tab:statsForReps) quantifies the statistical properties for each of the four environments, showing the mean values for 1000 simulations and their resulting cognitive representations after learning across the simulated lifespan. More learning leads to increasing interconnectivity in the representation. The total number of nodes with associations increases, corresponding to a rising functional vocabulary. The total number of associations increases, as measured by the total number of edges and mean degree. The strength of associations increases, as measured by the sum of a concept's weighted edges with other concepts.  The average shortest path length falls, meaning that random concepts share shorter pathways through the network. And the clustering coefficient increases, meaning that the neighbors of concepts tend to become more connected among themselves. Finally, the modularity---a measure of the discriminability of groups within the networks---falls with age, but is highest for the small-world networks, consistent with their community structure.  These statistical patterns provide objective measures of cognitive network enrichment. 
+
+
+```{r Figure3, eval = TRUE, fig.cap="Example of the growing cognitive representation resulting from experience with the scale-free small-world environment shown in Figure 2. Learning uses the Rescorla-Wagner model with $\\beta=0.01$. Cognitive representation growth from other environments looks visually similar. Statistics for these environments are provided in Table 1. Training occurs in 250 event epochs, with edges from the environment sampled in proportion to their weight. Nodes represent individual concepts and edges represent learned associations.", cache=TRUE}
+knitr::include_graphics(c("Figure3_main.pdf"))
+```
+
+
+
+
+\renewcommand{\arraystretch}{.5}
+
+```{r statsForReps}
+load("datout3_1000")
+# remove neg edges for manuscript table (so it fits)
+datout3 <- datout3[-c(8,9,17,18, 26,27,35,36),]
+#datout3 <- datout3[-c(8,9,17,18:36),]
+#### Table 1 ####
+kable(datout3,row.names=FALSE, booktabs = T, escape = TRUE, caption = "Statistics for the environments and growing representations.", col.names = c("Type", "Measures", "Environment", "1", "2", "3", "4"))  %>% 
+  column_spec(4, border_left = TRUE)   %>%
+  row_spec(0, align = "c",bold=T ) %>%
+#kable_classic(full_width = F, html_font = "Cambria")   %>% 
+  add_header_above(c(" " = 3, "Epoch" = 4), bold = TRUE) %>%
+  # row_spec(7,extra_css = "border-bottom: 1px solid;") %>% 
+  # row_spec(14,extra_css = "border-bottom: 1px solid;") %>% 
+  # row_spec(21,extra_css = "border-bottom: 1px solid;") %>% 
+  collapse_rows(columns = 1) %>% 
+  #collapse_rows(columns = 1, latex_hline="major") %>% 
+  footnote(general = "\\\\small{Measures averaged over 1000 environments and cognitive representations learned over four epochs of 250 learning events each. Nodes indicate non-isolates. Strength is sum of edge weights. Degree is number of associations positive. ASPL is average shortest path length. C is mean local clustering coefficient. M is modularity.}",escape=FALSE, threeparttable = TRUE) 
+
+```
+
+# Behavior
+
+The first two observations associated with cognitive aging we aim to explain are a rising entropy of associations and a reduction in pairwise similarity judgments. Each of these is recovered from the learned cognitive representation as described below. In all cases, behavioral measures are applied within the large subnetwork of interconnected and mutually reachable concepts (i.e., the giant component) making up the majority of words in adult semantic networks and on which prior work has focused [e.g., @Steyvers2005wx;@de2019small].
+
+### Rising entropy
+
+Following past work [@stella2020multiplex;@fradkin2022accumulating;@dubossarsky2017quantifying], I use information entropy to quantify the surprisingness of associative responses given the cue. If a cue has only one or a few strongly weighted associations, any given associate will be less surprising than if it has many equally weighted associations. Because each concept is connected to other concepts in the representation by a set of weighted edges, we can compute the entropy for every cue in the network representation as follows:
+
+$$
+H = -\sum_{i=1}^{k}  p_i log(p_i)
+$$ 
+
+Here, $p_i$ is the proportion of the weight $w_i$ along edge $i$ with respect to all $k$ edges for that cue. That is, $p_i = \frac{w_i}{\sum_k w_k}$.  The entropy reported below is the mean entropy across all concepts which are shared across all epochs.  This would be the entropy that would be recorded if one or more individuals produced many associations for each cue, with each association produced in proportion to its edge weight. 
+
+
+
+### Falling similarity
+
+To simulate similarity judgments, we create a measure of co-activation between pairs of cues using spreading activation. Spreading activation and its close cousin random walks are a commonly used process for evaluating co-activation on cognitive representations [@vitevitch2021cognitive; @siew2019spreadr;@collins1975spreading;@mcclelland1981interactive]. It also has a rich history in the evaluation of similarity [@larkey2005processes;@goldstone1994similarity;@rotaru2018modeling;@kumar2021modeling] including predicting human similarity judgments [@de2016structure]. To model this, we allow spreading activation to leave one node in the pair and measure activation at the other node, $A_{j \rightarrow k}$. This allows us to measure the extent to which one word co-activates the other. Doing this for both cues, we take similarity as the summed co-activation.
+
+$$
+S = A_{j \rightarrow k} + A_{k \rightarrow j}
+$$
+
+We measure this similarity for a random selection of 20 concept pairs in the representation. This only uses concepts learned during the first epoch of learning, ensuring that all concepts are included in the vocabulary for each epoch. Simulations use the `spreadr` function from @siew2019spreadr. This simulates 100 units of activation released from the cue concept, $j$, and divides its activation along each associative edge in proportion to their weights at each time step. The maximum activation at the target concept over 10 time steps is recorded as $A_{j \rightarrow k}$. Then the cue and target are swapped and the simulation is repeated to capture $A_{k \rightarrow j}$. The retention, suppress, and decay parameters in `spreadr` are all set to 0, which means all activation remains in the network and is diffused from each node in entirety at each time point. As the parameter values for retention, suppress, and decay increase, spreading activation is dampened, but the results remain qualitatively similar up to the point when the effects are sufficiently dampened that no cross-activation occurs.  
+
+
+
+
+```{r Figure4, echo=FALSE,out.width="80%", fig.cap="The outcome of the representational enrichment model for entropy and similarity measures compared against the Dubossarsky et al., 2017 and Wulff et al., 2022 data. Results represent 100 simulations of each environment type, and entropy and similarity computed from the learned cognitive representations with $\\beta$ equal to $.01$ or $.10$. Entropy is based on the distribution of edge weights. Similarity is based on the similarity equation for cross-activation via spreading activation. Using the free association data described in Table 1 of Dubossarsky et al. (2017) for ages 30 and above, entropy is computed as described for the enrichment model. The Wulff et al. (2022) data is based on 2268 similarity ratings for each of 36 old and 36 young individuals. Data are means and standard error after averaging first within participants and then over participants in an age group.",fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("Figure4_wDubo.pdf"))
+``` 
+
+
+
+### Results for entropy and similarity
+
+The results of the above computations are shown in Figure \@ref(fig:Figure4), with 100 simulations of the environment, learning, and behavior for each set of parameter values. These are shown alongside the data from   @dubossarsky2017quantifying and @wulff2019new. The results consistently show that entropy rises and similarity falls with increased enrichment, following the qualitative patterns in the observed data. 
+
+Faster learning rates have a faster rise in entropy and a faster decline in similarity, consistent with the proposal that network enrichment drives these effects. The correspondence between entropy and similarity suggest they are both influenced by similar underlying structure, which is more rapidly felt when learning is faster. In addition, scale-free networks have a higher entropy and a lower similarity than their non-scale-free counterparts. Community structure ($M>1$), on the other hand, appears to have a limited influence on the effects of enrichment. As further demonstrated in the Supplementary Materials, this qualitative fit to observation is robust to a wide variety of assumptions about environment size, density, learning algorithms, and duration of learning. From this we can conclude that the enrichment account provides a qualitatively constrained set of outcomes. 
+
+Researchers often attempt to bolster the sufficiency of their model by quantitatively fitting it to the data. This is possible with the enrichment account, but it requires additional assumptions---the size and structure of the environment, learning rates and amounts across the lifespan---which are likely to be overspecified. In these and other situations, @roberts2000persuasive persuasively argue that model fitting can be misleading. In particular, model fitting can be misleading for three reasons: a) models can be unconstrained, b) theory assumptions may be inconsistent with prior theory and evidence, and c) other models with different assumptions could fit the data equally well. The cognitive network enrichment account safely handles the first two challenges:  a) over a range of parameter values, it always predicts the qualitative pattern in the data---it cannot fit any pattern---and b) it is based on applying established theories of learning and memory across the lifespan. What about alternative models?  Could degradation explain the observed effects?
+
+
+
+# Degradation
+
+All other things being equal, older adults follow the general pattern found across the lifespan, they tend to remember things for which they have more experience [e.g., @burke1997memory]. This has a straightforward mapping onto degradation: Degrade associations by removing the weakest relationships in the cognitive representation first  [e.g., @BorgeHolthoefer:2011bg]. I implement this by ranking all edges in order of weight from weakest to strongest, and then removing all edges in the bottom $20\%$, $40\%$, $60\%$ and $80\%$. I also simulate random edge removal. Though this does not have a known correspondence to memory loss, it provides a useful counterpoint.  This removes associations without reference to their frequency of past experience. This is simulated by sampling $20\%$, $40\%$, $60\%$ and $80\%$ of the edges at random and then removing them. 
+
+Because degradation requires prior learning, I start with the fully learned network that is the end state of learning in Figure \@ref(fig:Figure4). That is, starting with the epoch 4 representation I remove various proportions of edges as a proxy for degradation and compare these alongside an additional epoch of enrichment. This produces a qualitative model competition in the fifth epoch, one in which we can directly compare enrichment alongside various kinds and intensities of degradation.  The simulation is repeated 100 times for each environment type, starting with 500 concepts and 2000 associations.  There are 250 learning events per epoch, using $\beta = 0.1$. Values for similarity and entropy are computed as above.  
+
+As Figure \@ref(fig:Figure5) shows, degradation is inconsistent with enrichment and it is inconsistent with the observed data. Both weakest first and random edge removal produce falling entropy and rising similarity. These effects become more severe as degradation increases. Degradation, as formally described here, is not sufficient, nor is it necessary.
+
+```{r Figure5, out.width="80%", fig.cap="Comparisons of enrichment alongside various kinds and intensities of degradation. Degradation is created either through a 'rising' threshold (weakest first) or 'random' edge removal starting from Epoch 4. The proportion of degradation is indicated alongside each point.", fig.align='center'}
+knitr::include_graphics(c("Figure5_100.pdf"))
+``` 
+
+
+# Free association networks across the lifespan
+
+Does enrichment explain the sparsening of free association networks found by @dubossarsky2017quantifying, @jeong2024cogsci, and @zortea2014graph, which was also shadowed in the memory search networks of @wulff2022structural? In all cases, age was marked by decreasing network degree, increasing average shortest path length, and decreasing clustering coefficient. Paradoxically, this is the opposite pattern to that observed for the enriched representations shown in Table \@ref(tab:statsForReps): more learning leads representations to rise in degree, fall in average shortest path length, and rise in clustering coefficient. Does retrieval from these cognitive representations reproduce the observed pattern for free associations? I test this here  by simulating free association retrieval from the enriched representations and then building networks from those free associations following the procedure used in @dubossarsky2017quantifying. 
+
+For each cognitive representation, we simulate 5 participants who retrieve three associates from each of 30 randomly chosen cues. The cues are sampled from the subset of concepts that have at least three associates in each epoch. The three associates are sampled without replacement for each participant and each associate is sampled in proportion to the positive associative strength with its cue encoded in the cognitive representation.  This produces a cue-by-associate matrix, with each cell indicating the number of times each associate was produced in response to each cue. 
+
+To control for varying numbers of associates produced across the lifespan, @dubossarsky2017quantifying converted the cue by association network into networks of equivalent size by producing a cue-by-cue network. Weighted edges in the cue-by-cue network were computed as the count of associates from one cue to the associates of the other cue, as follows,
+
+$$
+w_{i,j} = \sum_{a\in P}\frac{w_{i,a}}{N_a-1}
+$$
+with $w_{i,j}$ being the weighted directed edge from cue $i$ to cue $j$, $P$ is the set of shared associates, $w_{i,a}$ is the number of times cue $i$ produced associate $a$ in $P$, and $N_a$ is the number of cue words that produced $a$. Thus, if two cues each produce one common associate that is not produced by other cues, then $w_{i,j}=w_{j,i}=1$.  After transforming the cue-by-associate network into the cue-by-cue network, @dubossarsky2017quantifying removed edges with a weight lower than 1. As the networks are smaller here, no threshold is used in the first instance, but I vary this and other parameters below. 
+
+From these networks, degree, average shortest path length, and clustering coefficient are computed. @dubossarsky2017quantifying computed degree following @opsahl2010node as a combination of degree, $k$, and strength, $w$ (the sum of the weights), using $k=\sqrt{k_i} \times \sqrt{w_i}$. Average shortest path length was computed by transforming weights into distances by dividing by the average weight of the network, again following @opsahl2010node. Clustering coefficient was computed for weighted networks following the method described in @barrat2004architecture. This entire process is repeated for each environment type 100 times, with learning and then free associate retrieval as described above. 
+
+The results, shown in Figure \@ref(fig:Figure6), follow the empirically observed pattern, with more learning leading to declining degree, rising average shortest path length, and falling clustering coefficient. This is true across all four network types, suggesting this effect is not a property of the environment. A clear take-home message is that the apparent sparsening of the free association network can, counter-intuitively, be driven by enrichment of the cognitive representation.
+
+```{r Figure6, echo=FALSE,out.width="100%", fig.cap="Free association networks as a consequence of enrichment, showing the degree, average shortest path length (ASPL), and clustering coefficient with increasing age. Simulations were repeated 100 times for each environment type, with four training epochs of 250 learning events each ($\\beta=.1$). Representations were then each sampled from by 5 simulated participants who each retrieved 3 associates for each of 30 cues with probability proportional to the associative strengths in the learned representation. Free association network construction and measures are as described in the text. Error bars indicate one standard deviation.", fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("Figure6Sims100.pdf"))
+``` 
+
+
+However, there is more to be learned here. The method for collecting data from participants and constructing networks is diverse and results can be sensitive to these details. All previous work uses varying numbers of participants, cues, and thresholds for including edges in the network, with some diversity of results [@dubossarsky2017quantifying;@wulff2022using;@jeong2024cogsci;@zortea2014graph].  This is to be expected. If older adults produce higher entropy responses, older participants will generate less overlap per response, and this will produce weaker associations in the free association network. Application of a threshold---a common practice with free association data---also removes weak edges and makes older adults' networks look more sparse. Keeping data collection parameters similar for older and younger adults, such as participant numbers, cues, or associations, is effectively a hidden threshold because higher entropy responses will require more data to capture overlap in the distribution.
+
+With more participants, older adults begin to overlap across a broader set of associations, and cue degree increases.  Indeed, networks with higher degree, lower average shortest path length, and higher clustering coefficients arise as more participants report more associates for more cues. This is shown in the parameter exploration in Figure \@ref(fig:Figure5b), which provides an example using the scale-free small-world environment. This is a representative sample of the more complete exploration, which also includes degradation, shown in the Supplementary Material. What these explorations show is that for all environment types, there is always a parameter range for which enrichment (and degradation) captures the empirical evidence for sparsening of free association networks with age.
+
+```{r Figure5b, echo=FALSE,out.width="80%", fig.cap="Parameter exploration varying number of participants, cues, and threshold for the effects of enrichment on free association network structure. Simulations were repeated for 100 different scale-free small-world environments ($\\gamma=1$ and $M=5$) with four training epochs each of 250 learning events each ($\\beta=.1$). Representations were then each sampled from by the indicated number of participants who each retrieved 3 associates for each of the cues with probability proportional to the associative strengths. Cue-by-cue networks were then constructed as above. The heatmap indicates the difference between Epoch 4 and Epoch 1, with numbers greater than 0 indicating increasing values across the lifespan, shown in yellow, and declining values shown in red.", fig.show='hold',fig.align='center'}
+knitr::include_graphics(c("Figure74Sims100.pdf"))
+``` 
+
+
+The versatility of the models in capturing various patterns of free association data should be unsettling.  Given that we already know degradation does not reproduce the entropy or similarity results, degradation's success here is merely warning. That both models can produce the same apparent sparsening further compounds the challenge of inferring the representation from the behavior and the mistake of conflating the two. 
+
+However, there are other clues supporting enrichment in this case. Older adults produce more unique and unrelated associations than younger adults given the same number of cues [@dubossarsky2017quantifying;@zortea2014graph; @jeong2024cogsci]. In the limit, if older adults chose from all possible associates, a sufficient amount of data would produce a fully connected free association network---everything would be connected to everything. Collecting data from too few participants or across too few cues would however produce weaker associations than for younger more predictable participants. This is problematic as young children may also produce few associations because they know fewer words. If fundamentally different cognitive representations can produce the same behavioral patterns depending on methodological details, then further theory is needed to help identify the limits of our inference and how best to overcome them. 
+
+
+
+# Discussion
+
+
+
+Cognitive science, in the words of @johnson1980mental "needs theories that both cohere and correspond to the facts" (p. 73). The cognitive network enrichment account does both in the sense that it relies on well-established principles of learning and cognitive retrieval, models from environment to behavior, and produces observed cognitive effects commonly associated with aging across the lifespan. As cognitive representations become enriched and more densely interconnected through lifelong experience, the behaviors resulting from them lead to  rising entropy in associations and falling judgments of similarity. An account based on degradation, on the other hand, fails to  capture these results. 
+
+The enrichment account, like any model, helps put guardrails on our ignorance. It does this by showing how many of the behaviors that we might have intuitively interpreted as evidence of degradation are straightforward outcomes of learning. An enrichment of representational associations leads to higher behavioral entropy in divergent tasks and a greater diffusion of activation away from potential targets in convergent tasks. Indeed, we know enrichment must be occurring in association with rising crystallized intelligence. Thus the enrichment account is not only parsimonious, its effects _should_ be predicted, even if degradation is influencing them in some as yet unknown way. 
+
+In addition to the criteria of constrained predictions, coherence with prior theory, and outperforming alternatives,  the enrichment account satisfies a further requirement set out for models by @roberts2000persuasive: the outcome is surprising. If degradation-based cognitive decline is the a priori explanation for apparent sparsening of the mental lexicon, age-related slowing, and entropy of responses, then the observation that these are all explained by assuming people continue to learn as they always have, without invoking degradation at all, is surprising. Degradation would reverse the effect [see also @BorgeHolthoefer:2011bg]. It is still more surprising because the representation that gives rise to apparent sparsening is not itself sparsening. 
+
+These findings also help sharpen our intuition surrounding representation and behavior. Though only enrichment can explain the entropy and similarity effects, both enrichment and degradation can explain age-related change in the structure of free association networks. The latter observation should make researchers wary of assuming that any behavior, including free association, is a direct readout of the underlying representation. In the case of entropy and similarity judgments, inferring representation directly from behavior without formally taking into account the processes needed to generate that behavior leads to process inflation: we infer an additional process---degradation---where it is unnecessary.
+
+Many further challenges arise from these results. While the behavioral patterns are one kind of data, the patterns of biological and neural change outlined in the introduction are data as well. Any complete model of cognitive aging must take these facts into account, bridging the gap between cognition and its biological substrate. Ideally, we want to understand how these changes in neural architecture interact with enrichment to produce the behavioral variation that we see. One provocative interpretation is that degradation accounts may get the causation backwards. Which is to say, if life experience gives rise to some of the primary markers of healthy age-related cognitive change, it may also contribute to developmental patterns in the brain we associate with that change. Research focused on neural enrichment may help better understand this potential pathway.  
+
+The enrichment account also invites us to consider what aspects of development are non-stationary.  Here I assumed the environment, encoding, and retrieval were all fixed across the lifespan. But learning strategies may change in relation to age or content [@stella2017multiplex;@luef2022growth]. Childhood may have special developmental features of its own. For example, early vocabulary acquisition is driven by a variety of processes including semantics, phonology, social pragmatics, and perceptual features [@ciaglia2023investigating;@fourtassi2020growth;@yu2019infant;@siew2020investigation]. Developmental patterns that extend into young adulthood (e.g., because of shared education) may change as individuals age further, separating early from late life [compare @dubossarsky2017quantifying;@jeong2024cogsci]. Investigating how these additional factors impact lifelong development may help us better understand conceptual development and the nuances that may make some aspects of cognition more prone to enrichment effects than others.  
+
+Another non-stationary factor is change in the conceptual environment. Cultural evolution that occurs during a lifetime may produce new concepts and artifacts or redistribute associations among concepts that already exist [@li2019macroscope;@li2022diachronic;@hills2015recent]. Similarly, familiarity with concepts may make novel higher or lower order concepts available [@goldstone2017construction; @kemp2008discovery]. These non-stationarities provide new opportunities for learning that may dilute or further enrich existing conceptual relationships. Inspired by @brysbaert2016many, @hillsBNS2025 demonstrated that a minimalist textbook exploration of environmental growth according to Herdan-Heaps law (adding new concepts to the environment with additional experience) could reproduce the entropy and similarity effects described here. The present work shows that such environmental growth is not necessary, and extends the effects of enrichment to novel environments and behaviors.  However, there are many other ways in which environments could change, including differences in where new words arise, the effects of specialization, and the influence of changes in association weights or environmental ranking. Taking this seriously requires a multi-disciplinary modeling approach that treats the conceptual environment as a moving target. 
+
+Despite these challenges for future work, the fundamental mechanism of the enrichment account has experimental support. The fan effect demonstrates that learning many relationships with a target concept reduces the speed of accessing any one of those relationships [@anderson1999fan]. The fan effect is also amplified in older adults [@gerard1991age; @cohen1990recognition]. This diffusion of activation is a general and well-understood outcome of spreading activation and random walker models [@siew2019spreadr;@abbott2015random]. Activation follows pathways and the more pathways there are the less targeted the activation. In addition, one can see the enrichment effect in natural experiments: @ramscar2017mismeasurement showed that individuals with more language experience (native speakers) were more impaired in paired-associative learning in that language than age-matched individuals with less experience (second language learners). This suggests the effect is not about age, but enrichment.  
+
+The effects of enrichment should should also produce slowing. If we take the substantial empirical support that human judgment and decision making are underpinned by evidence accumulation models [@zhu2024autocorrelated;@brown2008simplest], then higher entropy predicts longer reaction times. This can be easily demonstrated on the back of an envelope. Suppose we want to retrieve $B$ from memory following cueing with $A$. If concept $A$ is equally connected with concepts $B$ and $C$, the negative binomial gives the expected number of samples needed to reach a threshold number of $r$ samples of $B$ as $E=r/p$. If it takes $10$ successes to reach the threshold, then it would take $20$ samples on average for $B$ to reach the threshold. In contrast, if the probabilities were $0.7$ and $0.3$, for $B$ and $C$ respectively, then it would take $\approx 14.3$ samples, leading to a faster response time. Thus, all other things being equal, higher entropy in the representational structure leads to slower processing. 
+
+Enrichment will also degrade fluid intelligence in other ways. The two most well-supported explanations for working memory constraints are based on resource limitations and interference [@oberauer2016limits], effects not limited to language [@oberauer2024interference]. Interference is likely to arise because, as @amer2022cluttered points out, older adults suffer from retrieval of more information and less relevant information. Because external cues gain their relevance via their encoded associations in memory [@easdale2019onset], greater entropy of associations will make targeting appropriate external stimuli more challenging. This also explains the greater impact of external clutter on processing speed in older adults [@mccarley2012age;@amer2022cluttered]. This was indirectly predicted by @Hasher:1988vg, who noted that, "If there is an age-related increase in the importance of one's personal values and experiences along with an age-related increase in the tendency to apply these concerns to a wider range of information, more information...is likely to enter working memory." Here, we might only add that the increase may be due to greater internal competition as a result of enrichment of representational targets. 
+
+Enrichment may also explain the appearance of impaired inhibition in older adults: the activation strengths associated with extraneous and potentially irrelevant information are relatively more competitive in individuals with more enriched representations. This makes older individuals more susceptible to clutter driven by both internal and external distractions. Many aging theorists explain the influence of these distractors as deficits in inhibition [e.g., @stoltzfus1996working]. This focuses on the _process_ as the target of age-related decline.  The present work reminds us that the outcomes of this process will be directly affected by representational structure [@hillsBNS2025]. The control processes associated with inhibition may be identical in older and younger adults, but older adults may suffer under greater competition from an enrichment of prior knowledge, making inhibition harder. 
+
+Should the results of the enrichment account generalize to tasks that are less based on prior knowledge?  Tasks such as Raven's Advanced Progressive Matrices, trail-making tasks, or yet other fluid intelligence tasks are often described as knowledge-free. @ramscar2014myth argues cogently that it is quite difficult to establish that a task is language-free.  The bar should be raised still higher for producing tasks that are knowledge-free. For example, in an ostensibly knowledge-free decision task (the leapfrog task), @blanco2016exploratory showed that older adults relied more on prior strategies than younger adults. This served them well when prior strategies were effective (they outperformed younger individuals), but it served them poorly when those strategies were misleading (younger adults performed better). To the extent that tasks can be free of prior knowledge, the enrichment account predicts they should be less influenced by age. But even Raven’s Matrices is influenced by rule learning [@loesche2015knowing], which would require an encoding independent of prior knowledge to avoid the impact of enrichment. Evidence for that independence is unlikely. A variety of measures of long-term memory correlate with fluid intelligence and working memory tasks [@unsworth2019individual] as do cultural and historical factors commonly associated with the Flynn effect [@brouwers2009variation]. Finally, if we accept more than a century of research showing that learning is itself influenced by prior knowledge then prior knowledge should affect performance on novel tasks. These all suggest that interactions between knowledge representations and knowledge-free tasks should be expected unless rigorously ruled out.
+
+One false challenge to the enrichment account is that individuals with higher education and occupational attainment are less likely to experience late-life cognitive decline [@stern1994influence;@lovden2020education;@clouston2020education]. This is partially a consequence of compensation accorded by skills or strategic repertoires, what is called cognitive reserve [@scarmeas2003cognitive]. Additionally, there is ample evidence that differences in cognitive skills emerge early in life, prior to education, and therefore lay the foundation for educational attainment later in life [@lovden2020education;@deary2004impact]. If differences in processing speed at an early age influence educational attainment at a later age, then slowing later as a consequence of education will be confounded by early processing advantages that facilitated that education. Moreover, these early processing advantages may not be a result of experience at all. IQ is correlated with brain volume [@pietschnig2022differing] and is strongly heritable [@peper2007genetic]. Furthermore, measures of 'brain age' in late life are well-predicted by indicators present in early life [@vidal2021individual]. Thus, inferring that educational attainment makes individuals more resilient to late-life cognitive decline assumes a causation that may be absent. The capacity for resilience may derive from the same source as the capacity for attainment. 
+
+Finally, the network enrichment effects observed here are not limited to human cognition but are ubiquitous across complex systems. The stability of economic markets, food webs, IT systems, urban infrastructure, neural networks, gene regulatory networks, and many other systems are impacted by network structure [e.g., @strogatz2001exploring;@turnbull2018connectivity]. In financial networks and food webs, connectivity can dilute resource flows, affecting stability and flexibility [@may2013networks]. In cultural systems, an increasing capacity to send and receive information creates competition for attention, altering information quality [@qiu2017limited;@hills2019dark]. Greater connectivity in the brain can facilitate pathology by upseting the balance between integration and segregation [@lord2017understanding].  These systems are each unique, but they often share fundamental topological and resource constraints. Perhaps the aging mind suffers under the same scaling laws as the streets of old Rome [e.g., @bettencourt2021introduction]. One should not make too much of an analogy, but where constraints are mirrored, phenomenology should follow.  
+
+<!-- The @ramscar2017mismeasurement study on age-matched bilinguals and monolinguals indicate that enrichment effects can be localized to specific cognitive domains. We may therefore also look within individuals, who may have different amounts of experience with different categories of information.  Is watching the complete reruns of the 11 seasons of the 1970s TV series M\*A\*S\*H  (approximately 125 hours run time) different from an initial reading of the complete works of Thomas Mann (approximately 125 hours reading time)?  If general enrichment is about the quantity of associations, and not their quality (if such quality could be objectively measured), then the difference may not matter.  -->
+
+
+
+
+
+# References
+
+::: {#refs custom-style="Bibliography"}
+:::

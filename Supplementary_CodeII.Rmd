@@ -1,0 +1,1899 @@
+---
+title: "Supplementary Code for Hills, T. T. **Learning, clutter, and age-related cognitive decline: An enrichment-based account of the interdependence between fluid and crystallized intelligence**"
+date: "2024-04-11"
+
+bibliography      : /Users/thomashills/Dropbox/Life_3.0_db/Books/BNS_Hills/BNS_Github/enrichment/enrichment.bib 
+
+floatsintext      : yes 
+linenumbers       : no 
+fig_caption       : yes
+
+classoption       : "man"
+toc               : false
+
+output:  bookdown::pdf_document2
+always_allow_html: true
+---
+
+
+```{r setup, echo=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+knitr::opts_chunk$set(cache.extra = knitr::rand_seed)
+# libraries
+ library(igraph)
+ library(tidyverse)
+ library(kableExtra)
+ library(latex2exp)
+ library(moments)
+ library(Rmisc)
+ library(lsa)
+ library(plot.matrix)
+
+
+```
+
+# General functions
+
+```{r genfunc}
+
+# colors
+col1 = "firebrick2"
+col2 = "cornflowerblue"
+col3 = "darkolivegreen3"
+col4 = "orange2"
+
+# rank-based communities GN
+rank_based_communities_GN <- function(wordsInWorld, Associates, communes=1, a=0, probc=.5){
+  # returns undirected giant component
+  # defaults produce ER random graph
+  # get a ranking 
+  x <- 1:wordsInWorld
+  # randomly assign to communities (take first x)
+  nodcoms <- sample(rep(1:communes, ceiling(wordsInWorld/communes))[x])
+  pairs <- c()
+  for(i in 1:Associates){
+    firstNode <- sample(x, 1, prob = x^(-a)) 
+    predge <- x^(-a)*ifelse(nodcoms[x]==nodcoms[firstNode], probc, 1-probc)
+    secondNode <- sample(x[-firstNode], 1, prob = predge[-firstNode])
+    pairs <- rbind(pairs, c(firstNode, secondNode))
+  }
+  ig <- graph_from_edgelist(pairs,directed=FALSE) 
+  E(ig)$weight <- 1
+  # get weighted version without multi-edges
+  ig <- graph_from_adjacency_matrix(as_adjacency_matrix(ig), weighted=TRUE, mode = "max")
+  # find giant component
+  ig = giantC(ig)
+  return(ig)
+}
+
+# Rescorla Wagner function 
+
+rescorlaWagner <- function(vmat = vmat, cue, outcome, alpha=1, beta=.2) {
+  # cue can be compound: e.g., cue = c("A", "B")
+  # outcome can be compound: e.g., outcome = c("A", "B")
+  cuevalues <- matrix(vmat[cue, ], nrow = length(cue))
+  valueSums <- apply(cuevalues,2,sum )     # cumulative cue value
+  # lambda = 1 when present 0 when absent
+  lambda = as.numeric(rownames(vmat) %in% outcome)
+  pError <- lambda - valueSums     # prediction error = observed - expected
+  valueChange <- alpha * beta * pError # value change 
+  vmat[cue, ] <- t(t(vmat[cue, ]) + valueChange)                   # update value
+  return(vmat)
+}
+
+network_entropy_computation <- function(gg){
+      # get nodes  common nodes in giantc across epochs
+      pairlist <- V(gg[[1]])$name
+      for(i in 2:length(gg)){
+           pairlist <- intersect(pairlist, V(gg[[i]])$name) 
+      }
+      Eval <- rep(NA, length(gg)) 
+  for(i in 1:length(gg)){
+      weightMatrix <- as_adjacency_matrix(gg[[i]], attr="weight", sparse=FALSE)
+      # remove negative edges
+      weightMatrix[weightMatrix < 0] <- 0
+      # normalize rows for entropy
+      ww<-weightMatrix/rowSums(weightMatrix, na.rm=TRUE)
+      # some things are isolates and produce 0 rowsums so NA in ww
+      # compute entropy for each node
+      node_entropy <- entropy(ww) 
+      # only compute entropy for words learned about at time 1 (removes isolates with 0 entropy)
+      Eval[i] <- mean(node_entropy[names(node_entropy) %in% pairlist], na.rm=TRUE)
+  }
+  return(Eval)
+}
+
+    # entropy function
+entropy <- function(p) rowSums(-(p * log(p)), na.rm = TRUE)
+
+    # data names for stats
+datanames <- c("Nodes", "Edges", "Strength", "Degree", "ASPL", "C", "M", "Neg. edges", "Strength w/ neg")
+
+    # compute list of network statistics   
+record_net_stats <- function(rawnetwork){
+      # Remove negative edges
+    negEdges <- which(E(rawnetwork)$weight < 0)
+    networkg <- igraph::delete_edges(rawnetwork, negEdges)
+    # record stats
+    datalisti <- c(sum(igraph::degree(networkg, mode = "total") >= 1),
+              length(E(networkg)),
+              mean(igraph::strength(networkg, mode = "total")),
+              mean(igraph::degree(networkg, mode = "total")),
+              igraph::mean_distance(networkg, unconnected=TRUE),
+              mean(igraph::transitivity(networkg, type="local"), na.rm=TRUE),
+              igraph::modularity(cluster_walktrap(networkg)),
+              length(which(E(rawnetwork)$weight < 0)),
+              mean(igraph::strength(rawnetwork, mode = "total")))
+  names(datalisti) <- datanames
+  return(datalisti)
+} 
+
+  # similarity function
+similarityFun <- function(simg,
+                          learningPairs=20){
+        # get list of common nodes in giantc across epochs
+        pairlist <- V(simg[[1]])$name
+        for(i in 2:length(simg)){
+           pairlist <- intersect(pairlist, V(simg[[i]])$name) 
+        }
+        # sample pairs with replacement to avoid sampling more than available in giant component
+        simpair <- matrix(as.numeric(sample(pairlist, 2*learningPairs, replace = TRUE)), ncol = 2)  
+        # set initial activation levels
+        simpair <- data.frame(simpair, activation = 100)
+        # time for spreading activation
+        tspr <- 10 
+        # assign column names
+        names(simpair) <- c("node", "node", "activation")
+        ## create datastore for similarity judgments
+        simJudge <- c()
+        # for each age network
+        for(sage in 1:length(simg)){
+          ## initiate activation at each node and measure activation at the other 
+          for(testrow in 1:nrow(simpair)){
+            # initiate activation at the cue
+            df1 <- spreadr::spreadr(start_run = simpair[testrow,c(1,3)],
+                      decay = 0,
+                      retention = 0, suppress = 0,
+                      network = simg[[sage]],
+                      time = tspr)
+            # measure max activation at the target node
+            maxActivation12 <- max(subset(df1, node == simpair[testrow,2])$activation)
+            # initiate activation at the other cue
+            df2 <- spreadr::spreadr(start_run = simpair[testrow,c(2,3)], decay = 0,
+                                    retention = 0, suppress = 0,
+                                    network = simg[[sage]], time = tspr)
+            # measure max activation at the target node
+            maxActivation21 <- max(subset(df2, node == simpair[testrow,1])$activation)
+            # add the max activations
+            simval <- maxActivation12 + maxActivation21
+            # add results to the data frame
+            simJudge <- rbind(simJudge, c(simpair[testrow,1],simpair[testrow,2], simval, sage))
+          }
+      }
+      # ready data frame with results
+      simJudge <- data.frame(simJudge)
+      # label columns
+      names(simJudge) <- c("node1", "node2", "similarity", "age")
+      # make numeric
+      simJudge$similarity <- as.numeric(simJudge$similarity)
+      # get stats by age
+      sed <- summarySE(simJudge, measurevar="similarity", groupvars="age")
+      return(sed$similarity)
+      }
+
+# giant component
+giantC <- function(ggg){
+  maxc <- which.max(components(ggg, mode = "strong")$csize)
+  Isolated = which(components(ggg, mode = "strong")$membership!=maxc)
+  gc = delete_vertices(ggg, Isolated)
+  return(gc)
+}
+
+removeNegEdges <- function(ggg){
+  edgesToRemove <- which(E(ggg)$weight < 0)
+  gggn <- delete_edges(ggg, edgesToRemove)
+  return(gggn)
+}
+```
+
+# Figure SM1 Network Size
+
+
+```{r FigureSM1, cache=FALSE}
+# varying network size
+
+rm(list=ls())
+<<genfunc>>
+
+set.seed(3)
+start <- Sys.time()
+# Developmental Stages
+ageEpochs = 4 
+# Simulations starting from environment
+Worlds = Simsi = 100 # 
+# Beta values
+Betas = c(.01, .1) # Beta values
+Betas = .01 # Beta values
+# graph features
+communelist <- c(1,1,5,5)
+alist <- c(0, 1, 0,1)
+probclist <- c(.5,.5,.96,.96)
+graphnamelist <- c("ER random graph", "Scale-free", "Small-world", "Scale-free small-world")
+giantcom = 1
+# directed or undirected
+maxdirected = "max" # or "directed"
+
+
+Elist <- list(NULL)
+Slist <- list(NULL)
+
+#envs = c(3,4)
+envs = 4 #
+
+wiw = c(500, 1000, 2000)
+#asso = c(2000, 5000, 10000)
+asso = 2000
+#leev = c(250, 1000, 5000)
+leev = 250
+# entropy
+entropyArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas)))
+# sim 
+similarityArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas)))
+
+for(wiwi in 1:length(wiw)){
+  wordsInWorld <- wiw[wiwi]
+for(assoi in 1:length(asso)){
+  Associates <- asso[assoi]
+for(leevi in 1:length(leev)){
+  learningEvents <- leev[leevi]
+for(envii in 1:length(envs)){
+ envi <- envs[envii]
+  EEB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  SSB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  
+  for(bis in 1:length(Betas)){
+    # Entropy keeper
+    EE <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    # Similarity keeper
+    SS <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    
+    for(woi in 1:Worlds){
+    
+      # returns undirected giant component
+      ii <- rank_based_communities_GN(wordsInWorld, Associates, communes = communelist[envi], a = alist[envi], probc = probclist[envi])
+     
+      # Rename graph for learning representation 
+      iis <- ii
+      
+      # Prepare Representation Matrix 
+      n = length(V(iis))+1 # number of cues (words) + context cue
+      # initialize zero value matrix for learning
+      vmat <- matrix(0, nrow = n, ncol = n)
+      rownames(vmat) <- 1:n
+      colnames(vmat) <- 1:n
+      # initialize metrics
+      edgeE <- rep(NA, ageEpochs)
+      ageNetworkList <- list(NULL)
+      
+      ##### Learn Representation #####
+      
+      for(lage in 1:ageEpochs){
+        
+        # make training data set
+        traindata <- c()
+        # sample edges from environment
+        for(i in 1:learningEvents){
+          cue_outcome <- ends(iis, sample(E(iis), 1, prob=E(iis)$weight))
+         traindata <- rbind(traindata, cue_outcome) 
+        }
+
+        # train on cue-outcome pairs
+        for(i in 1:learningEvents){
+          cue_outcome <- traindata[i,]
+          # below makes it directed
+          #cue_outcome<- sample(as.vector(cue_outcome))
+          vmat <- rescorlaWagner(vmat, cue=c(n, cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
+        }
+        
+       # make max(or)directed graph from representation 
+        gle <- graph_from_adjacency_matrix(vmat, weighted=TRUE, diag=FALSE, mode = maxdirected)
+        # remove context cue
+        gle <- igraph::delete_vertices(gle, n)
+        # remove negative edges
+        gle <- removeNegEdges(gle) 
+        if(giantcom == 1){
+          # giant component
+          gle <- giantC(gle)
+        }
+        # keep track of first learned giantc
+        if(lage == 1){
+          # firsttraindata
+          firsttraindata <- as.numeric(V(gle)$name)
+        } 
+        # save learned representation
+        ageNetworkList[[lage]] <- gle
+        
+      }
+        ##### Entropy #####
+        EE[woi,] <- network_entropy_computation(ageNetworkList) 
+      
+        ##### Similarity #####
+        SS[woi,] <-similarityFun(ageNetworkList)
+    }
+    
+    msee <- apply(EE, 2, mean)
+    sdee <- apply(EE, 2, sd)
+    sdee <- sdee/sqrt(nrow(EE))
+    mses <- apply(SS, 2, mean)
+    sdes <- apply(SS, 2, sd)
+    sdes <- sdes/sqrt(nrow(SS))
+   
+    EEB[bis,] <- msee 
+    SSB[bis,] <- mses 
+  }
+  
+  for(betasi in 1:length(Betas)){
+  entropyArray[wiwi, assoi, leevi, ,envii, betasi] <- EEB[betasi,]
+    
+  similarityArray[wiwi, assoi, leevi, ,envii, betasi] <- SSB[betasi,]
+  }
+}
+
+
+} # end of leev
+} # end of asso 
+} # end of wiwi
+
+#save(entropyArray, similarityArray, wiw, file="FigureSM1_100.RData")
+load("FigureSM1_100.RData")
+
+pdf("FigureSM1.pdf", height = 6, width = 10)
+par(mfrow=c(1,2))
+plot(1:4, entropyArray[1,1,1,,1,1], type = "b", ylim = c(0, 1.1), ylab = "Entropy", xlab = "Epoch")
+for(i in 1:length(entropyArray[,1,1,1,1,1])){
+lines(1:4, entropyArray[i,1,1,,1,1], type = "b", lty = i)
+}
+legend(2.4, .4, legend=c(wiw[1], wiw[2], wiw[3]), lty = 1:3, title = "Network size")
+
+maxy = max(similarityArray)
+plot(1:4, similarityArray[1,1,1,,1,1], type = "b", ylim = c(0, maxy), ylab = "Similarity", xlab = "Epoch")
+for(i in 1:length(similarityArray[,1,1,1,1,1])){
+lines(1:4, similarityArray[i,1,1,,1,1], type = "b", lty = i)
+}
+dev.off()
+```
+
+
+# Figure SM2 Associations
+
+
+```{r FigureSM2, cache=FALSE}
+# varying environment associations
+set.seed(1)
+
+rm(list=ls())
+<<genfunc>>
+
+set.seed(1)
+start <- Sys.time()
+# Developmental Stages
+ageEpochs = 4 
+# Simulations starting from environment
+Worlds = Simsi = 100 # 
+# Beta values
+Betas = c(.01, .1) # Beta values
+Betas = .01 # Beta values
+# graph features
+communelist <- c(1,1,5,5)
+alist <- c(0, 1, 0,1)
+probclist <- c(.5,.5,.96,.96)
+graphnamelist <- c("ER random graph", "Scale-free", "Small-world", "Scale-free small-world")
+giantcom = 1
+# directed or undirected
+maxdirected = "max" # or "directed"
+
+
+Elist <- list(NULL)
+Slist <- list(NULL)
+
+envs = c(3,4)
+
+#wiw = c(500, 1000, 2000)
+wiw = 500
+asso = c(2000, 5000, 10000)
+#asso = 2000
+#leev = c(250, 1000, 5000)
+leev = 250
+# entropy
+entropyArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas)))
+# sim 
+similarityArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas)))
+
+for(wiwi in 1:length(wiw)){
+  wordsInWorld <- wiw[wiwi]
+for(assoi in 1:length(asso)){
+  Associates <- asso[assoi]
+for(leevi in 1:length(leev)){
+  learningEvents <- leev[leevi]
+for(envii in 1:length(envs)){
+ envi <- envs[envii]
+  EEB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  SSB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  
+  for(bis in 1:length(Betas)){
+    # Entropy keeper
+    EE <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    # Similarity keeper
+    SS <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    
+    for(woi in 1:Worlds){
+    
+      # returns undirected giant component
+      ii <- rank_based_communities_GN(wordsInWorld, Associates, communes = communelist[envi], a = alist[envi], probc = probclist[envi])
+     
+      # Rename graph for learning representation 
+      iis <- ii
+      
+      # Prepare Representation Matrix 
+      n = length(V(iis))+1 # number of cues (words) + context cue
+      # initialize zero value matrix for learning
+      vmat <- matrix(0, nrow = n, ncol = n)
+      rownames(vmat) <- 1:n
+      colnames(vmat) <- 1:n
+      # initialize metrics
+      edgeE <- rep(NA, ageEpochs)
+      ageNetworkList <- list(NULL)
+      
+      ##### Learn Representation #####
+      
+      for(lage in 1:ageEpochs){
+        
+        # make training data set
+        traindata <- c()
+        # sample edges from environment
+        for(i in 1:learningEvents){
+          cue_outcome <- ends(iis, sample(E(iis), 1, prob=E(iis)$weight))
+         traindata <- rbind(traindata, cue_outcome) 
+        }
+
+        # train on cue-outcome pairs
+        for(i in 1:learningEvents){
+          cue_outcome <- traindata[i,]
+          # below makes it directed
+          #cue_outcome<- sample(as.vector(cue_outcome))
+          vmat <- rescorlaWagner(vmat, cue=c(n, cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
+        }
+        
+       # make max(or)directed graph from representation 
+        gle <- graph_from_adjacency_matrix(vmat, weighted=TRUE, diag=FALSE, mode = maxdirected)
+        # remove context cue
+        gle <- igraph::delete_vertices(gle, n)
+        # remove negative edges
+        gle <- removeNegEdges(gle) 
+        if(giantcom == 1){
+          # giant component
+          gle <- giantC(gle)
+        }
+        # keep track of first learned giantc
+        if(lage == 1){
+          # firsttraindata
+          firsttraindata <- as.numeric(V(gle)$name)
+        } 
+        # save learned representation
+        ageNetworkList[[lage]] <- gle
+        
+      }
+        ##### Entropy #####
+        EE[woi,] <- network_entropy_computation(ageNetworkList) 
+      
+        ##### Similarity #####
+        SS[woi,] <-similarityFun(ageNetworkList)
+    }
+    
+    msee <- apply(EE, 2, mean)
+    sdee <- apply(EE, 2, sd)
+    sdee <- sdee/sqrt(nrow(EE))
+    mses <- apply(SS, 2, mean)
+    sdes <- apply(SS, 2, sd)
+    sdes <- sdes/sqrt(nrow(SS))
+   
+    EEB[bis,] <- msee 
+    SSB[bis,] <- mses 
+  }
+  
+  for(betasi in 1:length(Betas)){
+  entropyArray[wiwi, assoi, leevi, ,envii, betasi] <- EEB[betasi,]
+    
+  similarityArray[wiwi, assoi, leevi, ,envii, betasi] <- SSB[betasi,]
+  }
+}
+
+
+} # end of leev
+} # end of asso 
+} # end of wiwi
+
+#save(entropyArray, similarityArray, file="FigureSM2_100.RData")
+load("FigureSM2_100.RData")
+pdf("FigureSM2_100.pdf", height = 6, width = 10)
+par(mfrow=c(1,2))
+maxy <- max(entropyArray[1,,1,,1,1])
+plot(1:4, entropyArray[1,1,1,,1,1], type = "b", ylim = c(0, maxy), ylab = "Entropy", xlab = "Epoch")
+for(i in 1:length(entropyArray[1,,1,1,1,1])){
+lines(1:4, entropyArray[1,i,1,,1,1], type = "b", lty = i)
+lines(1:4, entropyArray[1,i,1,,2,1], type = "b", lty = i, col = "red") 
+}
+legend(2.4, .4, legend=c("2000", "5000", "10000"), lty = 1:3, title = "Environment associations")
+grid()
+maxy <- max(similarityArray[1,1,1,,1,1])
+plot(1:4, similarityArray[1,1,1,,1,1], type = "b", ylim = c(0, maxy), ylab = "Similarity", xlab = "Epoch")
+for(i in 1:length(similarityArray[1,,1,1,1,1])){
+lines(1:4, similarityArray[1,i,1,,1,1], type = "b", lty = i)
+lines(1:4, similarityArray[1,i,1,,2,1], type = "b", lty = i, col="red")
+}
+legend(2., maxy, legend=c("Small-world", "Scale-free small-world"), col=c("black", "red"), lty= 1, title = "Environment type")
+grid()
+dev.off()
+```
+
+
+
+# Figure SM3 learning events
+
+
+```{r FigureSM3, cache=FALSE}
+# varying learning events
+set.seed(1)
+
+rm(list=ls())
+<<genfunc>>
+
+set.seed(1)
+start <- Sys.time()
+# Developmental Stages
+ageEpochs = 4 
+# Simulations starting from environment
+Worlds = Simsi = 100 # 
+# Beta values
+Betas = c(.01, .1) # Beta values
+Betas = .01 # Beta values
+# graph features
+communelist <- c(1,1,5,5)
+alist <- c(0, 1, 0,1)
+probclist <- c(.5,.5,.96,.96)
+graphnamelist <- c("ER random graph", "Scale-free", "Small-world", "Scale-free small-world")
+giantcom = 1
+# directed or undirected
+maxdirected = "max" # or "directed"
+
+
+Elist <- list(NULL)
+Slist <- list(NULL)
+
+envs = c(3,4)
+
+#wiw = c(500, 1000, 2000)
+wiw = 500
+#asso = c(2000, 5000, 10000)
+asso = 2000
+leev = c(250, 500, 1000)
+#leev = 250
+# entropy
+entropyArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas)))
+# sim 
+similarityArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas)))
+
+for(wiwi in 1:length(wiw)){
+  wordsInWorld <- wiw[wiwi]
+for(assoi in 1:length(asso)){
+  Associates <- asso[assoi]
+for(leevi in 1:length(leev)){
+  learningEvents <- leev[leevi]
+for(envii in 1:length(envs)){
+ envi <- envs[envii]
+  EEB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  SSB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  
+  for(bis in 1:length(Betas)){
+    # Entropy keeper
+    EE <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    # Similarity keeper
+    SS <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    
+    for(woi in 1:Worlds){
+    
+      # returns undirected giant component
+      ii <- rank_based_communities_GN(wordsInWorld, Associates, communes = communelist[envi], a = alist[envi], probc = probclist[envi])
+     
+      # Rename graph for learning representation 
+      iis <- ii
+      
+      # Prepare Representation Matrix 
+      n = length(V(iis))+1 # number of cues (words) + context cue
+      # initialize zero value matrix for learning
+      vmat <- matrix(0, nrow = n, ncol = n)
+      rownames(vmat) <- 1:n
+      colnames(vmat) <- 1:n
+      # initialize metrics
+      edgeE <- rep(NA, ageEpochs)
+      ageNetworkList <- list(NULL)
+      
+      ##### Learn Representation #####
+      
+      for(lage in 1:ageEpochs){
+        
+        # make training data set
+        traindata <- c()
+        # sample edges from environment
+        for(i in 1:learningEvents){
+          cue_outcome <- ends(iis, sample(E(iis), 1, prob=E(iis)$weight))
+         traindata <- rbind(traindata, cue_outcome) 
+        }
+
+        # train on cue-outcome pairs
+        for(i in 1:learningEvents){
+          cue_outcome <- traindata[i,]
+          # below makes it directed
+          #cue_outcome<- sample(as.vector(cue_outcome))
+          vmat <- rescorlaWagner(vmat, cue=c(n, cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
+        }
+        
+       # make max(or)directed graph from representation 
+        gle <- graph_from_adjacency_matrix(vmat, weighted=TRUE, diag=FALSE, mode = maxdirected)
+        # remove context cue
+        gle <- igraph::delete_vertices(gle, n)
+        # remove negative edges
+        gle <- removeNegEdges(gle) 
+        if(giantcom == 1){
+          # giant component
+          gle <- giantC(gle)
+        }
+        # keep track of first learned giantc
+        if(lage == 1){
+          # firsttraindata
+          firsttraindata <- as.numeric(V(gle)$name)
+        } 
+        # save learned representation
+        ageNetworkList[[lage]] <- gle
+        
+      }
+        ##### Entropy #####
+        EE[woi,] <- network_entropy_computation(ageNetworkList) 
+      
+        ##### Similarity #####
+        SS[woi,] <-similarityFun(ageNetworkList)
+    }
+    
+    msee <- apply(EE, 2, mean)
+    sdee <- apply(EE, 2, sd)
+    sdee <- sdee/sqrt(nrow(EE))
+    mses <- apply(SS, 2, mean)
+    sdes <- apply(SS, 2, sd)
+    sdes <- sdes/sqrt(nrow(SS))
+   
+    EEB[bis,] <- msee 
+    SSB[bis,] <- mses 
+  }
+  
+  for(betasi in 1:length(Betas)){
+  entropyArray[wiwi, assoi, leevi, ,envii, betasi] <- EEB[betasi,]
+    
+  similarityArray[wiwi, assoi, leevi, ,envii, betasi] <- SSB[betasi,]
+  }
+}
+
+
+} # end of leev
+} # end of asso 
+} # end of wiwi
+
+#save(entropyArray, similarityArray, file="FigureSM3_100.RData")
+#load("FigureSM3_100.RData")
+pdf("FigureSM3_100_250to1000.pdf", height = 6, width = 10)
+par(mfrow=c(1,2))
+maxy = max(entropyArray)
+plot(1:4, entropyArray[1,1,1,,1,1], type = "b", ylim = c(0, maxy), ylab = "Entropy", xlab = "Epoch")
+for(i in 1:length(entropyArray[1,1,,1,1,1])){
+lines(1:4, entropyArray[1,1,i,,1,1], type = "b", lty = i)
+  lines(1:4, entropyArray[1,1,i,,2,1], type = "b", lty = i, col = "red")
+}
+legend(2.9, .5, legend=c("250", "500", "1000"), lty = 1:3, title = "Learning events")
+grid()
+maxy = max(similarityArray[1,1,1,,,1])
+plot(1:4, similarityArray[1,1,1,,1,1], type = "b", ylim = c(0, maxy), ylab = "Similarity", xlab = "Epoch")
+for(i in 1:length(similarityArray[1,1,,1,1,1])){
+lines(1:4, similarityArray[1,1,i,,1,1], type = "b", lty = i)
+  lines(1:4, similarityArray[1,1,i,,2,1], type = "b", lty = i, col = "red")
+}
+legend(1.9, maxy, legend=c("Small-world", "Scale-free small-world"), col=c("black", "red"), lty= 1, title = "Environment type")
+grid(ny = 20)
+dev.off()
+```
+
+# Figure SM4 learning rates
+
+
+```{r FigureSM4, cache=FALSE}
+
+
+# varying learning rates
+set.seed(1)
+
+rm(list=ls())
+<<genfunc>>
+
+set.seed(1)
+start <- Sys.time()
+# Developmental Stages
+ageEpochs = 4 
+# Simulations starting from environment
+Worlds = Simsi = 100# 
+# Beta values
+Betas = c(.01, .1) # Beta values
+Betas = c(.01, .1, .5, 1) # Context
+# graph features
+communelist <- c(1,1,5,5)
+alist <- c(0, 1, 0,1)
+probclist <- c(.5,.5,.96,.96)
+graphnamelist <- c("ER random graph", "Scale-free", "Small-world", "Scale-free small-world")
+giantcom = 1
+# directed or undirected
+maxdirected = "max" # or "directed"
+
+
+Elist <- list(NULL)
+Slist <- list(NULL)
+
+envs = c(3,4)
+
+#wiw = c(500, 1000, 2000)
+wiw = 500
+#asso = c(2000, 5000, 10000)
+asso = 2000
+#leev = c(250, 1000, 5000)
+leev = 250
+# entropy
+entropyArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas)))
+# sim 
+similarityArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas)))
+
+for(wiwi in 1:length(wiw)){
+  wordsInWorld <- wiw[wiwi]
+for(assoi in 1:length(asso)){
+  Associates <- asso[assoi]
+for(leevi in 1:length(leev)){
+  learningEvents <- leev[leevi]
+for(envii in 1:length(envs)){
+ envi <- envs[envii]
+  EEB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  SSB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  
+  for(bis in 1:length(Betas)){
+    # Entropy keeper
+    EE <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    # Similarity keeper
+    SS <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    
+    for(woi in 1:Worlds){
+    
+      # returns undirected giant component
+      ii <- rank_based_communities_GN(wordsInWorld, Associates, communes = communelist[envi], a = alist[envi], probc = probclist[envi])
+     
+      # Rename graph for learning representation 
+      iis <- ii
+      
+      # Prepare Representation Matrix 
+      n = length(V(iis))+1 # number of cues (words) + context cue
+      # initialize zero value matrix for learning
+      vmat <- matrix(0, nrow = n, ncol = n)
+      rownames(vmat) <- 1:n
+      colnames(vmat) <- 1:n
+      # initialize metrics
+      edgeE <- rep(NA, ageEpochs)
+      ageNetworkList <- list(NULL)
+      
+      ##### Learn Representation #####
+      
+      for(lage in 1:ageEpochs){
+        
+        # make training data set
+        traindata <- c()
+        # sample edges from environment
+        for(i in 1:learningEvents){
+          cue_outcome <- ends(iis, sample(E(iis), 1, prob=E(iis)$weight))
+         traindata <- rbind(traindata, cue_outcome) 
+        }
+
+        # train on cue-outcome pairs
+        for(i in 1:learningEvents){
+          cue_outcome <- traindata[i,]
+          # below makes it directed
+          #cue_outcome<- sample(as.vector(cue_outcome))
+          vmat <- rescorlaWagner(vmat, cue=c(n, cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
+        }
+        
+       # make max(or)directed graph from representation 
+        gle <- graph_from_adjacency_matrix(vmat, weighted=TRUE, diag=FALSE, mode = maxdirected)
+        # remove context cue
+        gle <- igraph::delete_vertices(gle, n)
+        # remove negative edges
+        gle <- removeNegEdges(gle) 
+        if(giantcom == 1){
+          # giant component
+          gle <- giantC(gle)
+        }
+        # keep track of first learned giantc
+        if(lage == 1){
+          # firsttraindata
+          firsttraindata <- as.numeric(V(gle)$name)
+        } 
+        # save learned representation
+        ageNetworkList[[lage]] <- gle
+        
+      }
+        ##### Entropy #####
+        EE[woi,] <- network_entropy_computation(ageNetworkList) 
+      
+        ##### Similarity #####
+        SS[woi,] <-similarityFun(ageNetworkList)
+    }
+    
+    msee <- apply(EE, 2, mean)
+    sdee <- apply(EE, 2, sd)
+    sdee <- sdee/sqrt(nrow(EE))
+    mses <- apply(SS, 2, mean)
+    sdes <- apply(SS, 2, sd)
+    sdes <- sdes/sqrt(nrow(SS))
+   
+    EEB[bis,] <- msee 
+    SSB[bis,] <- mses 
+  }
+  
+  for(betasi in 1:length(Betas)){
+  entropyArray[wiwi, assoi, leevi, ,envii, betasi] <- EEB[betasi,]
+    
+  similarityArray[wiwi, assoi, leevi, ,envii, betasi] <- SSB[betasi,]
+  }
+}
+
+
+} # end of leev
+} # end of asso 
+} # end of wiwi
+
+
+#save(entropyArray, similarityArray, file="FigureSM4_100.RData")
+#
+load("FigureSM4_100.RData")
+pdf("FigureSM4_100.pdf", height = 6, width = 10)
+par(mfrow=c(1,2))
+maxy = max(entropyArray[1,1,1,,,])
+plot(1:4, entropyArray[1,1,1,,1,1], type = "b", ylim = c(0, maxy), ylab = "Entropy", xlab = "Epoch")
+for(i in 1:length(entropyArray[1,1,1,1,1,])){
+lines(1:4, entropyArray[1,1,1,,1,i], type = "b", lty = i)
+lines(1:4, entropyArray[1,1,1,,2,i], type = "b", lty = i, col="red")
+}
+grid()
+legend("bottomright", legend=c(".01",".1", ".5", "1"), lty = 1:4, title = ("Learning rate"))
+
+maxy = max(similarityArray[1,1,1,,,])
+plot(1:4, similarityArray[1,1,1,,1,1], type = "b", ylim = c(0, maxy), ylab = "Similarity", xlab = "Epoch")
+for(i in 1:length(similarityArray[1,1,1,1,1,])){
+lines(1:4, similarityArray[1,1,1,,1,i], type = "b", lty = i)
+lines(1:4, similarityArray[1,1,1,,2,i], type = "b", lty = i, col = "red")
+}
+grid(ny = 10)
+legend(2.15, maxy, legend=c("Small-world", "Scale-free small-world"), col=c("black", "red"), lty= 1, title = "Environment type", cex = .9)
+dev.off()
+```
+
+
+# Figure SM5 Removal of context cue
+
+
+```{r FigureSM5, cache=FALSE}
+# no context cue
+set.seed(1)
+
+rm(list=ls())
+<<genfunc>>
+
+set.seed(1)
+start <- Sys.time()
+# Developmental Stages
+ageEpochs = 4 
+# Simulations starting from environment
+Worlds = Simsi = 100# 
+# Beta values
+Betas = .1
+# graph features
+communelist <- c(1,1,5,5)
+alist <- c(0, 1, 0,1)
+probclist <- c(.5,.5,.96,.96)
+graphnamelist <- c("ER random graph", "Scale-free", "Small-world", "Scale-free small-world")
+giantcom = 1
+# directed or undirected
+maxdirected = "max" # or "directed"
+envs = c(3,4)
+
+Elist <- list(NULL)
+Slist <- list(NULL)
+
+#wiw = c(500, 1000, 2000)
+wiw = 500
+#asso = c(2000, 5000, 10000)
+asso = 2000
+#leev = c(250, 1000, 5000)
+leev = 250
+# entropy
+entropyArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas), 2))
+# sim 
+similarityArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas), 2))
+for(cc in 1:2){
+for(wiwi in 1:length(wiw)){
+  wordsInWorld <- wiw[wiwi]
+for(assoi in 1:length(asso)){
+  Associates <- asso[assoi]
+for(leevi in 1:length(leev)){
+  learningEvents <- leev[leevi]
+for(envii in 1:length(envs)){
+ envi <- envs[envii]
+  EEB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  SSB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  
+  for(bis in 1:length(Betas)){
+    # Entropy keeper
+    EE <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    # Similarity keeper
+    SS <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    
+    for(woi in 1:Worlds){
+         
+      # returns undirected giant component
+      ii <- rank_based_communities_GN(wordsInWorld, Associates, communes = communelist[envi], a = alist[envi], probc = probclist[envi])
+     
+      # Rename graph for learning representation 
+      iis <- ii
+
+      # Prepare Representation Matrix 
+     
+      # Add context cue
+      if(cc == 1){
+      n = length(V(iis))  +1  # number of cues (words) + context cue
+      }
+      if(cc == 2){
+      # Remove context cue 
+      n = length(V(iis))    # number of cues (words) 
+      }
+      
+      # Initialize zero value matrix for learning
+      vmat <- matrix(0, nrow = n, ncol = n)
+      rownames(vmat) <- 1:n
+      colnames(vmat) <- 1:n
+      # initialize metrics
+      edgeE <- rep(NA, ageEpochs)
+      ageNetworkList <- list(NULL)
+      
+      ##### Learn Representation #####
+      
+      for(lage in 1:ageEpochs){
+        
+        # make training data set
+        traindata <- c()
+        # sample edges from environment
+        for(i in 1:learningEvents){
+          cue_outcome <- ends(iis, sample(E(iis), 1, prob=E(iis)$weight))
+         traindata <- rbind(traindata, cue_outcome) 
+        }
+
+        # train on cue-outcome pairs
+        for(i in 1:learningEvents){
+          cue_outcome <- traindata[i,]
+          # below makes it directed
+          #cue_outcome<- sample(as.vector(cue_outcome))
+          vmat <- rescorlaWagner(vmat, cue=c(n, cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
+        }
+        
+       # make max(or)directed graph from representation 
+        gle <- graph_from_adjacency_matrix(vmat, weighted=TRUE, diag=FALSE, mode = maxdirected)
+        # remove context cue
+        gle <- igraph::delete_vertices(gle, n)
+        # remove negative edges
+        gle <- removeNegEdges(gle) 
+        if(giantcom == 1){
+          # giant component
+          gle <- giantC(gle)
+        }
+        # keep track of first learned giantc
+        if(lage == 1){
+          # firsttraindata
+          firsttraindata <- as.numeric(V(gle)$name)
+        } 
+        # save learned representation
+        ageNetworkList[[lage]] <- gle
+        
+      }
+        ##### Entropy #####
+        EE[woi,] <- network_entropy_computation(ageNetworkList) 
+      
+        ##### Similarity #####
+        SS[woi,] <-similarityFun(ageNetworkList)
+    }
+    
+    
+    msee <- apply(EE, 2, mean)
+    sdee <- apply(EE, 2, sd)
+    sdee <- sdee/sqrt(nrow(EE))
+    mses <- apply(SS, 2, mean)
+    sdes <- apply(SS, 2, sd)
+    sdes <- sdes/sqrt(nrow(SS))
+   
+    EEB[bis,] <- msee 
+    SSB[bis,] <- mses 
+  }
+  
+Elist[[envi]] <- EEB
+Slist[[envi]] <- SSB
+  for(betasi in 1:length(Betas)){
+  entropyArray[wiwi, assoi, leevi, ,envii, betasi, cc] <- EEB[betasi,]
+    
+  similarityArray[wiwi, assoi, leevi, ,envii, betasi, cc] <- SSB[betasi,]
+  }
+}
+
+
+} # end of leev
+} # end of asso 
+} # end of wiwi
+} # end of cc
+
+#save(entropyArray, similarityArray, file="FigureSM5_100.RData")
+load("FigureSM5_100.RData")
+pdf("FigureSM5_100.pdf", height = 6, width = 10)
+par(mfrow=c(1,2))
+maxy = max(entropyArray[1,1,1,,,1, ])
+plot(1:4, entropyArray[1,1,1,,1,1, 1], type = "b", ylim = c(0, maxy), ylab = "Entropy", xlab = "Epoch")
+for(i in 1:length(entropyArray[1,1,1,1,1,1,])){
+lines(1:4, entropyArray[1,1,1,,1,1,i], type = "b", lty = i)
+lines(1:4, entropyArray[1,1,1,,2,1,i], type = "b", lty = i, col = "red")
+}
+grid()
+legend(3, .4, legend=c("+","-"), lty = 1:2, title = ("Context cue"))
+maxy = max(similarityArray[1,1,1,,,1,])
+plot(1:4, similarityArray[1,1,1,,1,1,1], type = "b", ylim = c(0, maxy), ylab = "Similarity", xlab = "Epoch")
+for(i in 1:length(similarityArray[1,1,1,1,1,1,])){
+lines(1:4, similarityArray[1,1,1,,1,1,i], type = "b", lty = i)
+lines(1:4, similarityArray[1,1,1,,2,1,i], type = "b", lty = i, col = "red")
+}
+grid()
+legend(2.15, maxy, legend=c("Small-world", "Scale-free small-world"), col=c("black", "red"), lty= 1, title = "Environment type", cex = .9)
+dev.off()
+```
+
+
+# Figure SM6 Directed versus Undirected Networks
+
+
+```{r FigureSM6, cache=FALSE}
+# directed undirected
+rm(list=ls())
+<<genfunc>>
+
+set.seed(1)
+start <- Sys.time()
+# Developmental Stages
+ageEpochs = 4 
+# Simulations starting from environment
+Worlds = Simsi = 100# 
+# Beta values
+Betas = .1
+# graph features
+communelist <- c(1,1,5,5)
+alist <- c(0, 1, 0,1)
+probclist <- c(.5,.5,.96,.96)
+graphnamelist <- c("ER random graph", "Scale-free", "Small-world", "Scale-free small-world")
+giantcom = 1
+# directed or undirected ## varying this below
+envs = c(3,4)
+
+Elist <- list(NULL)
+Slist <- list(NULL)
+
+#wiw = c(500, 1000, 2000)
+wiw = 500
+#asso = c(2000, 5000, 10000)
+asso = 2000
+#leev = c(250, 1000, 5000)
+leev = 500
+# entropy
+entropyArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas), 2))
+# sim 
+similarityArray <- array(NA, dim=c(length(wiw), 
+                                  length(asso),
+                                  length(leev),
+                                  ageEpochs,
+                                  length(envs),
+                              length(Betas), 2))
+for(cc in 1:2){
+for(wiwi in 1:length(wiw)){
+  wordsInWorld <- wiw[wiwi]
+for(assoi in 1:length(asso)){
+  Associates <- asso[assoi]
+for(leevi in 1:length(leev)){
+  learningEvents <- leev[leevi]
+for(envii in 1:length(envs)){
+ envi <- envs[envii]
+  EEB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  SSB <- matrix(NA, nrow=length(Betas), ncol = 4)
+  
+  for(bis in 1:length(Betas)){
+    # Entropy keeper
+    EE <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    # Similarity keeper
+    SS <- matrix(NA, nrow=Worlds, ncol = ageEpochs)
+    
+    for(woi in 1:Worlds){
+         
+      # returns undirected giant component
+      ii <- rank_based_communities_GN(wordsInWorld, Associates, communes = communelist[envi], a = alist[envi], probc = probclist[envi])
+     
+      # Rename graph for learning representation 
+      iis <- ii
+
+      # Prepare Representation Matrix 
+     
+      # Add context cue
+      if(cc == 1){
+      n = length(V(iis))  +1  # number of cues (words) + context cue
+      }
+      if(cc == 2){
+      # Remove context cue 
+      n = length(V(iis))    # number of cues (words) 
+      }
+      
+      # Initialize zero value matrix for learning
+      vmat <- matrix(0, nrow = n, ncol = n)
+      rownames(vmat) <- 1:n
+      colnames(vmat) <- 1:n
+      # initialize metrics
+      edgeE <- rep(NA, ageEpochs)
+      ageNetworkList <- list(NULL)
+      
+      ##### Learn Representation #####
+      
+      for(lage in 1:ageEpochs){
+        
+        # make training data set
+        traindata <- c()
+        # sample edges from environment
+        for(i in 1:learningEvents){
+          cue_outcome <- ends(iis, sample(E(iis), 1, prob=E(iis)$weight))
+          if(cc==1){
+            cue_outcome <- sample(cue_outcome, 2)
+          }
+         traindata <- rbind(traindata, cue_outcome) 
+        }
+
+        # train on cue-outcome pairs
+        for(i in 1:learningEvents){
+          cue_outcome <- traindata[i,]
+          # below makes it directed
+          #cue_outcome<- sample(as.vector(cue_outcome))
+          vmat <- rescorlaWagner(vmat, cue=c(n, cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
+        }
+        
+        # make undirected graph from representation 
+        # could be mode = "directed"
+        if(cc == 1){
+        gle <- graph_from_adjacency_matrix(vmat, weighted=TRUE, diag=FALSE, mode = "directed")
+        }
+        if(cc == 2){
+        gle <- graph_from_adjacency_matrix(vmat, weighted=TRUE, diag=FALSE, mode = "max")
+        }
+        # remove context cue
+        gle <- igraph::delete_vertices(gle, n)
+        # remove negative edges
+        gle <- removeNegEdges(gle) 
+        if(giantcom == 1){
+          # giant component
+          gle <- giantC(gle)
+        }
+        # keep track of first learned giantc
+        if(lage == 1){
+          # firsttraindata
+          firsttraindata <- as.numeric(V(gle)$name)
+        } 
+        # save learned representation
+        ageNetworkList[[lage]] <- gle
+        
+      }
+        ##### Entropy #####
+        EE[woi,] <- network_entropy_computation(ageNetworkList) 
+      
+        ##### Similarity #####
+        SS[woi,] <-similarityFun(ageNetworkList)
+    }
+    
+    
+    msee <- apply(EE, 2, mean)
+    sdee <- apply(EE, 2, sd)
+    sdee <- sdee/sqrt(nrow(EE))
+    mses <- apply(SS, 2, mean)
+    sdes <- apply(SS, 2, sd)
+    sdes <- sdes/sqrt(nrow(SS))
+   
+    EEB[bis,] <- msee 
+    SSB[bis,] <- mses 
+  }
+  
+Elist[[envi]] <- EEB
+Slist[[envi]] <- SSB
+  for(betasi in 1:length(Betas)){
+  entropyArray[wiwi, assoi, leevi, ,envii, betasi, cc] <- EEB[betasi,]
+    
+  similarityArray[wiwi, assoi, leevi, ,envii, betasi, cc] <- SSB[betasi,]
+  }
+}
+
+
+} # end of leev
+} # end of asso 
+} # end of wiwi
+} # end of cc
+
+#save(entropyArray, similarityArray, file="FigureSM6_100.RData")
+#load("FigureSM6_100.RData")
+
+pdf("FigureSM6_100.pdf", height = 6, width = 10)
+par(mfrow=c(1,2))
+maxy = max(entropyArray)
+plot(1:4, entropyArray[1,1,1,,1,1, 1], type = "b", ylim = c(0, maxy), ylab = "Entropy", xlab = "Epoch")
+for(i in 1:length(entropyArray[1,1,1,1,1,1,])){
+lines(1:4, entropyArray[1,1,1,,1,1,i], type = "b", lty = i)
+  lines(1:4, entropyArray[1,1,1,,2,1,i], type = "b", lty = i, col = "red")
+}
+grid(ny =20)
+legend(2.2, .4, legend=c("Directed","Undirected"), lty = 1:2)
+maxy = max(similarityArray)
+plot(1:4, similarityArray[1,1,1,,1,1,1], type = "b", ylim = c(0, maxy), ylab = "Similarity", xlab = "Epoch")
+for(i in 1:length(similarityArray[1,1,1,1,1,1,])){
+lines(1:4, similarityArray[1,1,1,,1,1,i], type = "b", lty = i)
+  lines(1:4, similarityArray[1,1,1,,2,1,i], type = "b", lty = i, col= "red")
+}
+legend(2.15, maxy, legend=c("Small-world", "Scale-free small-world"), col=c("black", "red"), lty= 1, title = "Environment type", cex = .9)
+grid(ny = 20)
+dev.off()
+```
+
+# Figure SM7 Code is in the code for the main manuscript
+
+# Figure SM8 Degredation parameter exploration 
+
+```{r FigureSM8degradation}
+library(igraph)
+library(scales)
+library(beeswarm)
+library(plot.matrix)
+
+#### Figure SM8 Parameter Exploration ####
+
+# vary over cues, participants, threshold
+rm(list=ls())
+<<genfunc>>
+
+set.seed(2)
+start <- Sys.time()
+# World parameters (500/2000/200 for)
+wordsInWorld=500
+# proportion
+Associates = 2000 # Edges in environment
+# Set learning events and age classes
+learningEvents <- 250
+# Developmental Stages
+ageEpochs = 4 
+# Simulations starting from environment
+Worlds = Simsi = 100 # Sims 
+# Beta values
+Betas = .1 # Beta values
+bis = 1 # selects first beta value (there's only one here)
+# graph features
+communelist <- c(1,1,5,5)
+alist <- c(0, 1, 0,1)
+probclist <- c(.5,.5,.96,.96)
+graphnamelist <- c("ER random graph", "Scale-free", "Small-world", "Scale-free small-world")
+giantcom = 1
+# directed or undirected
+maxdirected = "max" # or "directed"
+# dubossarsky method
+dubo = 1
+# THRESHOLD (in Dubossarsky)
+threshold = 0 # median(E(nettodo)$weight) 
+# cuelimit: use only cues with degree higher than
+degreelimit = 3
+# values for parameter exploration
+numcuesSpan = c(10,20,30,40, 50)
+numparticipantSpan = c(5, 10, 20, 30, 40, 50)
+thresholdSpan = seq(0, 1, .1)
+# number of environments 
+environments = 4
+# prob for degradation
+probseq <- c(0, .1,.2,.3) #seq(0, .3, .1)
+
+transdev <- rep(NA, 2)
+# degree
+degreedev <- rep(NA, 2)
+# aspl 
+distancedev <- rep(NA, 2)
+# strength 
+strengthdev <- rep(NA, 2)
+
+# array dimensions c(cues, threshold, Ss, envi, woi)
+transdevArray <- array(NA, dim=c(length(numcuesSpan), 
+                                 length(thresholdSpan),
+                                 length(numparticipantSpan),
+                                 environments,
+                                 Worlds))
+# degree
+degreedevArray <- array(NA, dim=c(length(numcuesSpan), 
+                                  length(thresholdSpan),
+                                  length(numparticipantSpan),
+                                  environments,
+                              Worlds))
+# aspl 
+distancedevArray <- array(NA, dim=c(length(numcuesSpan), 
+                                    length(thresholdSpan),
+                                    length(numparticipantSpan),
+                                    environments,
+                               Worlds)) 
+# strength 
+strengthdevArray <- array(NA, dim=c(length(numcuesSpan), 
+                                    length(thresholdSpan),
+                                    length(numparticipantSpan),
+                                    environments,
+                                    Worlds))
+
+for(envi in 1:4){
+  print(paste("environment ", envi))
+  # Each World creates a new environment and a new developmental learning trajectory with associations
+  for(woi in 1:Worlds){
+    print(paste("world ", woi)) 
+      # returns undirected giant component
+      ii <- rank_based_communities_GN(wordsInWorld, Associates, communes = communelist[envi], a = alist[envi], probc = probclist[envi])
+     
+    # Rename graph for learning representation 
+    iis <- ii
+    
+    # Prepare Representation Matrix 
+    
+    n = length(V(iis))+1 # number of cues (words) + context cue
+    
+    # Initialize zero value matrix for learning
+    vmat <- matrix(0, nrow = n, ncol = n)
+    rownames(vmat) <- 1:n
+    colnames(vmat) <- 1:n
+    
+    # Initialize metrics
+    edgeE <- rep(NA, ageEpochs)
+    nodeCount <- rep(NA, ageEpochs)
+    ageNetworkList <- list(NULL)
+    
+      ##### Learn Representation #####
+      
+      for(lage in 1:ageEpochs){
+        
+        # make training data set
+        traindata <- c()
+        # sample edges from environment
+        for(i in 1:learningEvents){
+          cue_outcome <- ends(iis, sample(E(iis), 1, prob=E(iis)$weight))
+         traindata <- rbind(traindata, cue_outcome) 
+        }
+
+        # train on cue-outcome pairs
+        for(i in 1:learningEvents){
+          cue_outcome <- traindata[i,]
+          # below makes it directed
+          #cue_outcome<- sample(as.vector(cue_outcome))
+          vmat <- rescorlaWagner(vmat, cue=c(n, cue_outcome[1]), outcome=cue_outcome[2], beta = Betas[bis]) 
+        }
+        
+       # make max(or)directed graph from representation 
+        gle <- graph_from_adjacency_matrix(vmat, weighted=TRUE, diag=FALSE, mode = maxdirected)
+        # remove context cue
+        gle <- igraph::delete_vertices(gle, n)
+        # remove negative edges
+        gle <- removeNegEdges(gle) 
+        if(giantcom == 1){
+          # giant component
+          gle <- giantC(gle)
+        }
+        # keep track of first learned giantc
+        if(lage == 1){
+          # firsttraindata
+          firsttraindata <- as.numeric(V(gle)$name)
+        } 
+        # save learned representation
+        ageNetworkList[[lage]] <- gle
+      }
+    
+       
+       # Degrade networks from lage = 4
+      glen <- ageNetworkList[[4]]
+      # degrade through percentiles of edge weights
+      # make list for degraded networks
+      degNetlist <- list()
+
+      # truncated
+      # threshval <- quantile(E(glen)$weight,probs=probseq)[1:4]
+      #untruncated
+      threshval <- quantile(E(glen)$weight,probs=probseq)
+      # rising threshold
+      for(deg in 1:length(threshval)){
+        edgesToRemove <- which(E(glen)$weight <= threshval[deg]) 
+        newgraph <- igraph::delete_edges(glen, edgesToRemove)
+        degNetlist[[deg]] <- newgraph
+      } 
+      # # random removal
+      # edgesToRemove <- ecount(glen)
+      # # random removal order
+      # removalOrder <- sample(1:edgesToRemove, edgesToRemove)
+      # for(deg in 1:length(threshval)){
+      #   degNetlist[[deg+length(threshval)]] <- igraph::delete_edges(glen, removalOrder[1:round(edgesToRemove*probseq[deg])])
+      # } 
+     
+    ageNetworkList <- degNetlist 
+    
+    #### FREE ASSO NETWORK ####
+
+    # Make cue list from nodes with degree 3 or more across all four epochs
+    #### Compute associations for each network
+    #### mode = "out" returns undirected degree as well
+    gclist <- which(degree(ageNetworkList[[1]], mode = "out") > degreelimit)
+    for(cueld in 2:length(ageNetworkList)){
+      bufgc <- which(degree(ageNetworkList[[cueld]], mode = "out") > degreelimit)
+      gclist <- intersect(gclist, bufgc)
+    }
+    
+    for(numcuesi in 1:length(numcuesSpan)){
+      for(thresholdi in 1:length(thresholdSpan)){
+        for(numparticipantsi in 1:length(numparticipantSpan)){
+          numcues = numcuesSpan[numcuesi]
+          threshold = thresholdSpan[thresholdi]
+          numparticipants = numparticipantSpan[numparticipantsi] 
+          # Make cue list from sample of intersection of all lists
+          cuelist <- sample(gclist, numcues)
+          # store networks and matrices
+          gcs <- list(NULL)
+          gmats <- list(NULL)
+          # For each age network  produce cue x cue network
+        for(nits in c(1,4)){
+          # Get weighted adjacency matrix for producing associates at each age
+          getassmat <- as_adjacency_matrix(ageNetworkList[[nits]], attr="weight", sparse = FALSE)
+          # Make empty cue x target matrix
+          cxtm <- matrix(0, nrow=  numcues,ncol = length(V(ageNetworkList[[4]])))
+    
+          ## Generate 3 associates each 
+          for(cuei in 1:length(cuelist)){
+            # For number of participants
+            for(partis in 1:numparticipants){
+              # Sample from row of adjacency matrix in proportion to weight, only sample as many associates are available up to 3
+              samplemax = sum(getassmat[cuelist[cuei],] > 0) 
+              threeasss <- sample(1:length(getassmat[cuelist[cuei],]), ifelse(samplemax >= 3, 3, samplemax), prob=getassmat[cuelist[cuei],])
+              # Add to cue x target matrix
+              cxtm[cuei,threeasss] <- cxtm[cuei,threeasss] + 1
+            } 
+          }
+            
+            cuesims <-  cxtm
+            # set dubo = 1 for dubossarsky method
+            if(dubo == 1){
+            ## dubossarsky way
+            dubomat <- matrix(0, nrow = numcues, ncol = numcues)
+               for(cisi in 1:length(cuelist)){
+                 for(cisj in 1:length(cuelist)){
+                     if(cisi != cisj){
+                       sharedass <- intersect(which(cxtm[cisi,] >=1), which(cxtm[cisj,] >= 1))
+                       wij <- 0
+                       # add up assymetric weights
+                       if(length(sharedass > 0)){
+                         for(isha in 1:length(sharedass)){
+                           wij <- wij + cxtm[cisi, sharedass[isha]]/(sum(cxtm[,sharedass[isha]] > 0) - 1)
+                         }
+                       }
+                       dubomat[cisi, cisj] <- wij
+                     }
+                 }
+             }
+               # diagonal to 0
+               diag(dubomat) <- 0
+               cuesims <- dubomat
+            }
+            
+
+            #### Compute stats on network
+            gcs[[nits]] <- cuesims
+            #### 
+            #gmats[[nits]] <- graph_from_adjacency_matrix(cuesims, weighted = TRUE, mode="undirected")
+            # if using dubo method
+            if(dubo == 1){
+              # make it directed and weighted 
+             gmats[[nits]] <- graph_from_adjacency_matrix(cuesims, weighted = TRUE, mode="directed")
+             # simplify it
+             gmats[[nits]] <- igraph::simplify(gmats[[nits]], remove.multiple = TRUE)
+             }
+          } # end production of each cue x cue network across development
+          
+          
+          # for each network threshold then compute values
+          for(ip in c(1,4)){
+             nettodo <- gmats[[ip]]
+             nettodo <- delete_edges(nettodo, which(E(nettodo)$weight < threshold))
+             # get giant C
+             nettodo <- giantC(nettodo)
+            
+            
+           # compute stats 
+                transdev[ip] <- mean(igraph::transitivity(igraph::as.undirected(nettodo, mode = "collapse"), type="barrat"), na.rm = TRUE)
+              # degree
+              degreedev[ip] <- mean( igraph::degree(nettodo))
+              # average weight 
+                awei <- mean(E(nettodo)$weight, na.rm=TRUE)
+              # aspl
+                distancedev[ip] <- igraph::mean_distance(nettodo, weights =awei/E(nettodo)$weight )
+              # degree
+              strengthdev[ip] <- mean( igraph::strength(nettodo))
+              
+          } # end of ip
+          
+        # array dimensions c(cues, threshold, Ss, envi, woi) 
+          transdevArray[numcuesi, thresholdi, numparticipantsi, envi, woi]  <- transdev[4] - transdev[1]
+          degreedevArray[numcuesi, thresholdi, numparticipantsi, envi, woi]  <- degreedev[4] - degreedev[1]
+          distancedevArray[numcuesi, thresholdi, numparticipantsi, envi, woi]  <- distancedev[4] - distancedev[1]
+          strengthdevArray[numcuesi, thresholdi, numparticipantsi, envi, woi]  <- strengthdev[4] - strengthdev[1]
+        } # end of numparticipantsSpan
+      } # end of thresholdSpan  
+    } # end of numcuesSpan
+    
+  } # end of worlds
+} # end of envi
+
+#save.image(file = "Figure8_100.RData")
+
+load("Figure8_100.RData")
+#### Plot Figure ####
+
+for(envment in 1:4){ 
+# array dimensions c(cues, threshold, Ss, envi, woi) 
+#save(degreedevArray, file="degreedevArray.RData")
+#load("degreedevArray.RData")
+
+pdf(paste("SM8CueXThresh_Env",envment,"Sims", Worlds,".pdf", sep=""), height = 10, width = 8)
+par(mfrow=c(length(numparticipantSpan), 3))
+par(mar=c(4,4,4,5))
+for(numss in 1:length(numparticipantSpan)){
+  
+  ## degree
+  tda <- degreedevArray[,,numss,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- numcuesSpan
+  colnames(tdamat) <- thresholdSpan
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  
+  plot(tdamat, breaks=breaks, xlab = TeX("Threshold"), ylab=TeX("Cues"), main=paste("Degree: Participants = ", numparticipantSpan[numss], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4)) 
+  ## aslp
+  tda <- distancedevArray[,,numss,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- numcuesSpan
+  colnames(tdamat) <- thresholdSpan
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Threshold"), ylab=TeX("Cues"), main=paste("ASPL: Participants = ", numparticipantSpan[numss], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4))  
+  ## trans
+    tda <- transdevArray[,,numss,envment,]
+    tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+    rownames(tdamat) <- numcuesSpan
+    colnames(tdamat) <- thresholdSpan
+    pal = colorRampPalette(c("red", "yellow"))
+    breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+               mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+               0,
+               mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+               ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+    plot(tdamat, breaks=breaks, xlab = TeX("Threshold"), ylab=TeX("Cues"), main =paste("Transitivity: Participants = ", numparticipantSpan[numss], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4))
+}
+dev.off()
+
+# array dimensions c(cues, threshold, Ss, envi, woi) 
+# vary across cue number
+pdf(paste("SM8PartXThresh_Env",envment,"Sims", Worlds,".pdf", sep=""), height = 10, width = 8)
+par(mfrow=c(length(numcuesSpan), 3))
+par(mar=c(4,4,4,5))
+for(numcs in 1:length(numcuesSpan)){
+  
+  ## degree
+  tda <- degreedevArray[numcs,,,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- thresholdSpan 
+  colnames(tdamat) <- numparticipantSpan
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Participants"), ylab=TeX("Threshold"), main=paste("Degree: Number of cues= ", numcuesSpan[numcs], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4)) 
+  ## aslp
+  tda <- distancedevArray[numcs,,,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- thresholdSpan 
+  colnames(tdamat) <- numparticipantSpan
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Participants"), ylab=TeX("Threshold"), main=paste("ASPL: Number of cues= ", numcuesSpan[numcs], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4))  
+  ## trans
+  tda <- transdevArray[numcs,,,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- thresholdSpan 
+  colnames(tdamat) <- numparticipantSpan
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Participants"), ylab=TeX("Threshold"), main=paste("Transitivity: Number of cues= ", numcuesSpan[numcs], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4)) 
+}
+dev.off()
+
+# array dimensions c(cues, threshold, Ss, envi, woi) 
+# vary across threshold number
+pdf(paste("SM8PartXCues_",envment,"Sims", Worlds,".pdf", sep=""), height = 10, width = 8)
+threshgroup <- thresholdSpan[1:9]
+par(mfrow=c(length(threshgroup), 3))
+par(mar=c(2.5,2.5,2.5,5))
+par(mgp = c(1.3, 0.8, 0))
+cms = .8
+for(numts in 1:length(threshgroup)){
+  
+  ## degree
+  tda <- degreedevArray[,numts,,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- numcuesSpan 
+  colnames(tdamat) <- numparticipantSpan 
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Cues"), ylab=TeX("Participants"), main=paste("Degree: Threshold = ", thresholdSpan[numts], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main = cms) 
+  ## aslp
+  tda <- distancedevArray[,numts,,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- numcuesSpan 
+  colnames(tdamat) <- numparticipantSpan 
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Cues"), ylab=TeX("Participants"), main=paste("ASPL: Threshold = ", thresholdSpan[numts], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main = cms)  
+  ## trans
+  tda <- transdevArray[,numts,,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- numcuesSpan 
+  colnames(tdamat) <- numparticipantSpan 
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Cues"), ylab=TeX("Participants"), main=paste("Transitivity: Threshold = ", thresholdSpan[numts], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main = cms) 
+}
+dev.off()
+
+pdf(paste("FigureSM8",envment,"Sims", Worlds,".pdf", sep=""), height = 8, width = 8)
+par(mfrow=c(3, 3))
+par(mar=c(3.5,3.5,3.5,5))
+par(mgp = c(2, .8, 0))
+cms =1 
+
+numss = 1 
+  ## degree
+  tda <- degreedevArray[,,numss,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- numcuesSpan
+  colnames(tdamat) <- thresholdSpan
+  tdamat <- tdamat[nrow(tdamat):1,]
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Threshold"), ylab=TeX("Cues"), main=paste("Degree: Participants = ", numparticipantSpan[numss], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main =cms) 
+  ## aslp
+  tda <- distancedevArray[,,numss,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- numcuesSpan
+  colnames(tdamat) <- thresholdSpan
+  tdamat <- tdamat[nrow(tdamat):1,]
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Threshold"), ylab=TeX("Cues"), main=paste("ASPL: Participants = ", numparticipantSpan[numss], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main =cms)  
+  ## trans
+  tda <- transdevArray[,,numss,envment,]
+  tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+  rownames(tdamat) <- numcuesSpan
+  colnames(tdamat) <- thresholdSpan
+  tdamat <- tdamat[nrow(tdamat):1,]
+  pal = colorRampPalette(c("red", "yellow"))
+  breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+             mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+             0,
+             mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+             ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+  plot(tdamat, breaks=breaks, xlab = TeX("Threshold"), ylab=TeX("Cues"), main =paste("Transitivity: Participants = ", numparticipantSpan[numss], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main =cms)
+  
+numcs = 2
+    
+    ## degree
+    tda <- degreedevArray[numcs,,,envment,]
+    tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+    rownames(tdamat) <- thresholdSpan 
+    colnames(tdamat) <- numparticipantSpan
+  tdamat <- tdamat[nrow(tdamat):1,]
+    pal = colorRampPalette(c("red", "yellow"))
+    breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+               mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+               0,
+               mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+               ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+    plot(tdamat, breaks=breaks, xlab = TeX("Participants"), ylab=TeX("Threshold"), main=paste("Degree: Cues= ", numcuesSpan[numcs], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main =cms) 
+    ## aslp
+    tda <- distancedevArray[numcs,,,envment,]
+    tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+    rownames(tdamat) <- thresholdSpan 
+    colnames(tdamat) <- numparticipantSpan
+  tdamat <- tdamat[nrow(tdamat):1,]
+    pal = colorRampPalette(c("red", "yellow"))
+    breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+               mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+               0,
+               mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+               ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+    plot(tdamat, breaks=breaks, xlab = TeX("Participants"), ylab=TeX("Threshold"), main=paste("ASPL: Cues = ", numcuesSpan[numcs], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main =cms)  
+    ## trans
+    tda <- transdevArray[numcs,,,envment,]
+    tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+    rownames(tdamat) <- thresholdSpan 
+    colnames(tdamat) <- numparticipantSpan
+  tdamat <- tdamat[nrow(tdamat):1,]
+    pal = colorRampPalette(c("red", "yellow"))
+    breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+               mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+               0,
+               mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+               ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+    plot(tdamat, breaks=breaks, xlab = TeX("Participants"), ylab=TeX("Threshold"), main=paste("Transitivity: Cues = ", numcuesSpan[numcs], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main =cms) 
+ 
+
+  numts = 1
+      
+      ## degree
+      tda <- degreedevArray[,numts,,envment,]
+      tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+      rownames(tdamat) <- numcuesSpan 
+      colnames(tdamat) <- numparticipantSpan 
+  tdamat <- tdamat[nrow(tdamat):1,]
+      pal = colorRampPalette(c("red", "yellow"))
+      breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+                 mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+                 0,
+                 mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+                 ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+      plot(tdamat, breaks=breaks, ylab = TeX("Cues"), xlab=TeX("Participants"), main=paste("Degree: Threshold = ", thresholdSpan[numts], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main = cms) 
+      ## aslp
+      tda <- distancedevArray[,numts,,envment,]
+      tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+      rownames(tdamat) <- numcuesSpan 
+      colnames(tdamat) <- numparticipantSpan 
+  tdamat <- tdamat[nrow(tdamat):1,]
+      pal = colorRampPalette(c("red", "yellow"))
+      breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+                 mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+                 0,
+                 mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+                 ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+      plot(tdamat, breaks=breaks, ylab = TeX("Cues"), xlab=TeX("Participants"), main=paste("ASPL: Threshold = ", thresholdSpan[numts], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main = cms)  
+      ## trans
+      tda <- transdevArray[,numts,,envment,]
+      tdamat <- apply(tda,c(1,2),mean, na.rm=T)
+      rownames(tdamat) <- numcuesSpan 
+      colnames(tdamat) <- numparticipantSpan 
+  tdamat <- tdamat[nrow(tdamat):1,]
+      pal = colorRampPalette(c("red", "yellow"))
+      breaks = c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02), 
+                 mean(c(ifelse(min(tdamat,na.rm=T) < 0, min(tdamat, na.rm=T), -.02),0)),
+                 0,
+                 mean(c(0, ifelse(max(tdamat, na.rm=T)<0, +.02, max(tdamat, na.rm=T)))),
+                 ifelse(max(tdamat, na.rm=T)<0, .02, max(tdamat, na.rm=T)))
+      plot(tdamat, breaks=breaks, ylab = TeX("Cues"), xlab=TeX("Participants"), main=paste("Transitivity: Threshold = ", thresholdSpan[numts], sep=""), key=list(font=2, cex.axis=.75), spacing.key=c(1,1,0), col = pal(4), cex.main = cms) 
+  dev.off()
+}
+print(Sys.time() - start)
+```
